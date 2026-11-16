@@ -39,6 +39,13 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **Token Lifecycle**: 15-minute access JWTs and rotating 7-day refresh tokens stored securely as hashes with family reuse detection.
 - **Auth Endpoints**: Signup, login, token refresh, and logout routes with Zod schema validation and rate limiting.
 
+### Phase 5: Order-Book Data Structure (`apps/engine/src/book/`)
+- **DoublyLinkedList<T>**: $O(1)$ node insertion and removal with direct node pointers, iteration, and size management.
+- **SortedPriceLevels**: Bids sorted descending (highest first) and asks sorted ascending (lowest first) with binary search lookup and insertion.
+- **Book Core**: $O(1)$ indexed cancellations via map + list node, partial fill reductions, depth ladders, and total resting quantity tracking.
+- **Deterministic Serialization**: `Book.snapshot()` and `Book.restore()` providing byte-identical state replication for crash recovery.
+- **Property-Based Testing & Benchmark**: 1,000-run `fast-check` suite verifying Invariant 11 (quantity conservation), sorting invariants, index consistency, and a 100,000 add + 100,000 cancel benchmark running in < 1,000 ms.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -59,7 +66,7 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **3** | Money Math | **Done** | `@cex/money`, $10^8$ BigInt scaling, property tests |
 | **4** | Authentication | **Done** | `apps/api-gateway`, JWT rotation, argon2id, rate limiting |
 | **—** | Logging System | **Done** | `@cex/logger`, Winston, `apilogs.ts`, `errorlogs.ts`, `debuglogs.ts` |
-| **5** | Order-Book Structure | **Pending** | Price-level linked lists, limit order books, FIFO queues |
+| **5** | Order-Book Structure | **Done** | Price-level linked lists, limit order books, FIFO queues, snapshots |
 | **6** | Matching Logic | **Pending** | Pure synchronous engine matching, maker execution, STP |
 | **7** | Balances & Fees | **Pending** | In-memory balance sheet, fee deductions, lock invariants |
 | **8** | Redis Streams Messaging | **Pending** | Redis command/reply/event stream integration & engine runner |
