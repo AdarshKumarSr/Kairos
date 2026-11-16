@@ -42,25 +42,25 @@ RULES
 
 ### 0.3 Glossary
 
-| Term | Meaning |
-| --- | --- |
-| Base / Quote asset | In `SOL_USDT`, SOL is the base (thing traded) and USDT is the quote (price currency) |
-| Maker | An order that rests on the book and provides liquidity |
-| Taker | An order that matches immediately against resting orders |
-| Spread | Best ask minus best bid |
-| Scaled integer | Human value multiplied by 10^8 and stored as BigInt (Section 4.1) |
-| Price-time priority | Better price matches first; at equal price, the earlier order matches first |
-| STP | Self-Trade Prevention: stops a user’s order matching the same user’s resting order |
-| Command | An input message to the engine (place order, cancel, deposit, …) |
-| Event | An output message from the engine (accepted, trade, cancelled, balance changed, …) |
-| Journal (WAL) | Append-only file of every command, used to rebuild engine state after a crash |
-| Snapshot | Periodic full dump of engine state used to speed up recovery |
-| engineSeq | Strictly increasing sequence number assigned by the engine to every processed command/event |
-| Tick size | Smallest allowed price increment. **Lot size:** smallest allowed quantity increment |
-| Notional | Price x quantity, expressed in the quote asset |
-| L2 depth | Aggregated order book: total quantity per price level |
-| OHLCV | Open, High, Low, Close, Volume (a candlestick) |
-| Projection | A database view of engine events, rebuildable from them |
+| Term                | Meaning                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| Base / Quote asset  | In `SOL_USDT`, SOL is the base (thing traded) and USDT is the quote (price currency)        |
+| Maker               | An order that rests on the book and provides liquidity                                      |
+| Taker               | An order that matches immediately against resting orders                                    |
+| Spread              | Best ask minus best bid                                                                     |
+| Scaled integer      | Human value multiplied by 10^8 and stored as BigInt (Section 4.1)                           |
+| Price-time priority | Better price matches first; at equal price, the earlier order matches first                 |
+| STP                 | Self-Trade Prevention: stops a user’s order matching the same user’s resting order          |
+| Command             | An input message to the engine (place order, cancel, deposit, …)                            |
+| Event               | An output message from the engine (accepted, trade, cancelled, balance changed, …)          |
+| Journal (WAL)       | Append-only file of every command, used to rebuild engine state after a crash               |
+| Snapshot            | Periodic full dump of engine state used to speed up recovery                                |
+| engineSeq           | Strictly increasing sequence number assigned by the engine to every processed command/event |
+| Tick size           | Smallest allowed price increment. **Lot size:** smallest allowed quantity increment         |
+| Notional            | Price x quantity, expressed in the quote asset                                              |
+| L2 depth            | Aggregated order book: total quantity per price level                                       |
+| OHLCV               | Open, High, Low, Close, Volume (a candlestick)                                              |
+| Projection          | A database view of engine events, rebuildable from them                                     |
 
 ---
 
@@ -74,12 +74,12 @@ A **spot exchange**. Users register, receive balances, place buy/sell orders, wa
 
 ### 1.2 Who uses it
 
-| Actor | What they do |
-| --- | --- |
-| Trader (USER) | Sign up, deposit (simulated), trade, cancel, withdraw (request), view history |
-| Bot / API client | Same as trader via REST and WebSocket with high order rates |
-| Admin (ADMIN) | Create markets, set fees, halt or resume a market, approve withdrawals, view fee revenue and audit log |
-| Operator | Deploys, monitors, restores from backup |
+| Actor            | What they do                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| Trader (USER)    | Sign up, deposit (simulated), trade, cancel, withdraw (request), view history                          |
+| Bot / API client | Same as trader via REST and WebSocket with high order rates                                            |
+| Admin (ADMIN)    | Create markets, set fees, halt or resume a market, approve withdrawals, view fee revenue and audit log |
+| Operator         | Deploys, monitors, restores from backup                                                                |
 
 ### 1.3 In scope
 
@@ -109,15 +109,15 @@ Margin, futures, stop/OCO orders, FOK, order amendment, real blockchain custody,
 
 ### 1.6 Non-functional targets
 
-| Metric | Target | Note |
-| --- | --- | --- |
-| Engine match time per order | < 1 ms p99 | Measured in-process, excludes network |
-| API order acknowledgement | < 50 ms p99 | Gateway to engine to gateway |
-| Throughput | 3,000+ orders/sec | One engine process, load-tested in Phase 18 |
-| Crash recovery | < 60 s | Snapshot load + journal replay |
-| Acknowledged-order loss | 0 | Journal is written before acknowledgement |
-| WebSocket fan-out | 5,000 concurrent clients | p99 < 250 ms local |
-| Availability target | 99.5% (single region) | Documented, not contractually enforced |
+| Metric                      | Target                   | Note                                        |
+| --------------------------- | ------------------------ | ------------------------------------------- |
+| Engine match time per order | < 1 ms p99               | Measured in-process, excludes network       |
+| API order acknowledgement   | < 50 ms p99              | Gateway to engine to gateway                |
+| Throughput                  | 3,000+ orders/sec        | One engine process, load-tested in Phase 18 |
+| Crash recovery              | < 60 s                   | Snapshot load + journal replay              |
+| Acknowledged-order loss     | 0                        | Journal is written before acknowledgement   |
+| WebSocket fan-out           | 5,000 concurrent clients | p99 < 250 ms local                          |
+| Availability target         | 99.5% (single region)    | Documented, not contractually enforced      |
 
 ---
 
@@ -151,15 +151,15 @@ An AI must treat these as fixed unless the user changes them.
 
 ### 3.1 Component responsibilities
 
-| Component | Folder | Stateless? | Owns | Must NOT |
-| --- | --- | --- | --- | --- |
-| API Gateway | `apps/api-gateway` | Yes | Auth, validation, rate limits, command creation, read APIs | Hold balances; match orders |
-| Matching Engine | `apps/engine` | No (in-memory + journal) | Order books, live balances, sequence numbers, journal, snapshots | Touch Postgres; call HTTP |
-| DB Worker | `apps/db-worker` | Yes | Writing events to Postgres idempotently | Decide business outcomes |
-| Market Data Service | `apps/market-data` | Mostly | Ticker, rolling stats, depth snapshots, kline pushes | Write orders/balances |
-| WebSocket Server | `apps/ws-server` | Yes | Client connections, subscriptions, fan-out | Mutate state |
-| Web App | `apps/web` | n/a | Trading terminal UI | Do float math on money |
-| Shared packages | `packages/*` | n/a | `types`, `money`, `db`, `config`, `logger` | Contain app logic |
+| Component           | Folder             | Stateless?               | Owns                                                             | Must NOT                    |
+| ------------------- | ------------------ | ------------------------ | ---------------------------------------------------------------- | --------------------------- |
+| API Gateway         | `apps/api-gateway` | Yes                      | Auth, validation, rate limits, command creation, read APIs       | Hold balances; match orders |
+| Matching Engine     | `apps/engine`      | No (in-memory + journal) | Order books, live balances, sequence numbers, journal, snapshots | Touch Postgres; call HTTP   |
+| DB Worker           | `apps/db-worker`   | Yes                      | Writing events to Postgres idempotently                          | Decide business outcomes    |
+| Market Data Service | `apps/market-data` | Mostly                   | Ticker, rolling stats, depth snapshots, kline pushes             | Write orders/balances       |
+| WebSocket Server    | `apps/ws-server`   | Yes                      | Client connections, subscriptions, fan-out                       | Mutate state                |
+| Web App             | `apps/web`         | n/a                      | Trading terminal UI                                              | Do float math on money      |
+| Shared packages     | `packages/*`       | n/a                      | `types`, `money`, `db`, `config`, `logger`                       | Contain app logic           |
 
 ### 3.2 System architecture
 
@@ -314,13 +314,13 @@ flowchart LR
 
 ### 3.7 Data ownership
 
-| Data | Source of truth | Other copies |
-| --- | --- | --- |
-| Live balances, open orders | Engine memory (rebuilt from snapshot + journal) | Postgres projection; Redis depth cache |
-| Users, passwords, tokens | Postgres | none |
-| Market configuration | Postgres | Redis cache + engine memory (refreshed by `MARKET_CONFIG` command) |
-| Trades, order history, ledger | Postgres (from events) | none |
-| Candles | TimescaleDB continuous aggregates | in-progress candle in Market Data memory |
+| Data                          | Source of truth                                 | Other copies                                                       |
+| ----------------------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
+| Live balances, open orders    | Engine memory (rebuilt from snapshot + journal) | Postgres projection; Redis depth cache                             |
+| Users, passwords, tokens      | Postgres                                        | none                                                               |
+| Market configuration          | Postgres                                        | Redis cache + engine memory (refreshed by `MARKET_CONFIG` command) |
+| Trades, order history, ledger | Postgres (from events)                          | none                                                               |
+| Candles                       | TimescaleDB continuous aggregates               | in-progress candle in Market Data memory                           |
 
 ### 3.8 Deployment topology
 
@@ -374,20 +374,20 @@ sellLock    = quantity                                    // limit sell lock, in
 
 ### 4.2 Order model
 
-| Field | Type | Rules |
-| --- | --- | --- |
-| `orderId` | UUIDv7 | Generated by gateway |
-| `clientOrderId` | string, 1-36 chars, optional | Unique per user; duplicate returns the original result |
-| `userId` | UUID | From JWT, never from request body |
-| `market` | string | Must exist and be `ACTIVE` |
-| `side` | `BUY` or `SELL` |  |
-| `type` | `LIMIT` or `MARKET` |  |
-| `price` | scaled BigInt | Required for LIMIT; multiple of `tickSize` |
-| `quantity` | scaled BigInt | Required for LIMIT and market SELL; multiple of `lotSize` |
-| `quoteQuantity` | scaled BigInt | Required for market BUY only |
-| `postOnly` | bool | LIMIT only |
-| `ioc` | bool | Unfilled remainder is cancelled |
-| `stp` | `CANCEL_TAKER` | Default and only mode |
+| Field           | Type                         | Rules                                                     |
+| --------------- | ---------------------------- | --------------------------------------------------------- |
+| `orderId`       | UUIDv7                       | Generated by gateway                                      |
+| `clientOrderId` | string, 1-36 chars, optional | Unique per user; duplicate returns the original result    |
+| `userId`        | UUID                         | From JWT, never from request body                         |
+| `market`        | string                       | Must exist and be `ACTIVE`                                |
+| `side`          | `BUY` or `SELL`              |                                                           |
+| `type`          | `LIMIT` or `MARKET`          |                                                           |
+| `price`         | scaled BigInt                | Required for LIMIT; multiple of `tickSize`                |
+| `quantity`      | scaled BigInt                | Required for LIMIT and market SELL; multiple of `lotSize` |
+| `quoteQuantity` | scaled BigInt                | Required for market BUY only                              |
+| `postOnly`      | bool                         | LIMIT only                                                |
+| `ioc`           | bool                         | Unfilled remainder is cancelled                           |
+| `stp`           | `CANCEL_TAKER`               | Default and only mode                                     |
 
 Invalid combinations (rejected `INVALID_FLAGS`): `postOnly` with `ioc`; `postOnly` with `MARKET`; `MARKET` with `price`; market BUY without `quoteQuantity`; market SELL with `quoteQuantity`; LIMIT with `quoteQuantity`.
 
@@ -716,21 +716,21 @@ interface EngineState {
 
 ### 4.7 Redis naming
 
-| Name | Type | Purpose | Written by | Read by |
-| --- | --- | --- | --- | --- |
-| `engine.commands` | Stream | Commands into the engine | Gateway | Engine (group `engine`) |
-| `engine.replies` | Stream | Per-command result | Engine | Gateway |
-| `engine.events` | Stream | All state-change events | Engine | DB Worker, Market Data, WS (groups) |
-| `engine.events.dead` | Stream | Poison events | DB Worker | Operators |
-| `depth:{market}` | String (JSON) | Latest depth snapshot with `seq` | Market Data | Gateway, WS |
-| `ticker:{market}` | String (JSON) | Latest ticker | Market Data | Gateway, WS |
-| `marketcfg:{symbol}` | String (JSON) | Market config cache | Gateway/Admin | Gateway |
-| `rl:{scope}:{id}` | String | Rate-limit counters | Gateway | Gateway |
-| `md:depth:{market}` | Pub/Sub | Depth deltas | Market Data | WS |
-| `md:trade:{market}` | Pub/Sub | Trades | Market Data | WS |
-| `md:ticker:{market}` | Pub/Sub | Ticker updates | Market Data | WS |
-| `md:kline:{interval}:{market}` | Pub/Sub | Candle updates | Market Data | WS |
-| `user:{userId}` | Pub/Sub | Private order/balance events | Market Data / WS bridge | WS |
+| Name                           | Type          | Purpose                          | Written by              | Read by                             |
+| ------------------------------ | ------------- | -------------------------------- | ----------------------- | ----------------------------------- |
+| `engine.commands`              | Stream        | Commands into the engine         | Gateway                 | Engine (group `engine`)             |
+| `engine.replies`               | Stream        | Per-command result               | Engine                  | Gateway                             |
+| `engine.events`                | Stream        | All state-change events          | Engine                  | DB Worker, Market Data, WS (groups) |
+| `engine.events.dead`           | Stream        | Poison events                    | DB Worker               | Operators                           |
+| `depth:{market}`               | String (JSON) | Latest depth snapshot with `seq` | Market Data             | Gateway, WS                         |
+| `ticker:{market}`              | String (JSON) | Latest ticker                    | Market Data             | Gateway, WS                         |
+| `marketcfg:{symbol}`           | String (JSON) | Market config cache              | Gateway/Admin           | Gateway                             |
+| `rl:{scope}:{id}`              | String        | Rate-limit counters              | Gateway                 | Gateway                             |
+| `md:depth:{market}`            | Pub/Sub       | Depth deltas                     | Market Data             | WS                                  |
+| `md:trade:{market}`            | Pub/Sub       | Trades                           | Market Data             | WS                                  |
+| `md:ticker:{market}`           | Pub/Sub       | Ticker updates                   | Market Data             | WS                                  |
+| `md:kline:{interval}:{market}` | Pub/Sub       | Candle updates                   | Market Data             | WS                                  |
+| `user:{userId}`                | Pub/Sub       | Private order/balance events     | Market Data / WS bridge | WS                                  |
 
 ---
 
@@ -806,16 +806,16 @@ Fees   : maker pays makerFeeBps, taker pays takerFeeBps, each in the asset that 
 
 **Worked example** (market `SOL_USDT`, tick 0.01, makerFee 8 bps, takerFee 10 bps):
 
-| Step | Action | Result |
-| --- | --- | --- |
-| 1 | Alice has 100 SOL, places LIMIT SELL 10 SOL @ 142.50 | Alice locks 10 SOL. Rests on the ask side |
-| 2 | Bob has 5,000 USDT, places LIMIT BUY 10 SOL @ 143.00 | Bob locks `10 x 143.00 = 1,430.00` USDT |
-| 3 | Engine matches at maker price 142.50 | Trade qty 10 SOL, quoteAmount `1,425.00` USDT |
-| 4 | Bob is taker: fee `0.10%` of received SOL | `10 x 0.001 = 0.01` SOL |
-| 5 | Alice is maker: fee `0.08%` of received USDT | `1,425 x 0.0008 = 1.14` USDT |
-| 6 | Bob settlement | locked USDT -1,430; pays 1,425; **refund 5.00** to available; receives 9.99 SOL |
-| 7 | Alice settlement | locked SOL -10; receives 1,423.86 USDT |
-| 8 | Fee account | +0.01 SOL and +1.14 USDT |
+| Step | Action                                               | Result                                                                          |
+| ---- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 1    | Alice has 100 SOL, places LIMIT SELL 10 SOL @ 142.50 | Alice locks 10 SOL. Rests on the ask side                                       |
+| 2    | Bob has 5,000 USDT, places LIMIT BUY 10 SOL @ 143.00 | Bob locks `10 x 143.00 = 1,430.00` USDT                                         |
+| 3    | Engine matches at maker price 142.50                 | Trade qty 10 SOL, quoteAmount `1,425.00` USDT                                   |
+| 4    | Bob is taker: fee `0.10%` of received SOL            | `10 x 0.001 = 0.01` SOL                                                         |
+| 5    | Alice is maker: fee `0.08%` of received USDT         | `1,425 x 0.0008 = 1.14` USDT                                                    |
+| 6    | Bob settlement                                       | locked USDT -1,430; pays 1,425; **refund 5.00** to available; receives 9.99 SOL |
+| 7    | Alice settlement                                     | locked SOL -10; receives 1,423.86 USDT                                          |
+| 8    | Fee account                                          | +0.01 SOL and +1.14 USDT                                                        |
 
 Conservation check: USDT `-1,425 + 1,423.86 + 1.14 = 0`. SOL `-10 + 9.99 + 0.01 = 0`. In scaled units: price `14250000000`, quantity `1000000000`.
 
@@ -829,19 +829,19 @@ Look up `orderId` in the book index (O(1)); verify `userId`; remove the node; re
 
 ### 5.6 Rejection codes
 
-| Code | Meaning |
-| --- | --- |
-| `INSUFFICIENT_FUNDS` | Available balance lower than required lock |
-| `MARKET_NOT_ACTIVE` | Market halted, delisted, or unknown |
-| `INVALID_TICK` | Price is not a multiple of tick size |
-| `INVALID_LOT` | Quantity is not a multiple of lot size |
-| `BELOW_MIN_NOTIONAL` | Notional smaller than market minimum |
-| `INVALID_FLAGS` | Illegal combination from Section 4.2 |
-| `POST_ONLY_WOULD_CROSS` | Post-only order would take liquidity |
-| `SELF_TRADE` | STP cancelled the taker |
-| `DUPLICATE_ORDER` | Reserved: `clientOrderId` reused with different parameters |
-| `ORDER_NOT_FOUND` | Cancel target does not exist or is finished |
-| `NOT_OWNER` | Cancel attempted by non-owner |
+| Code                    | Meaning                                                    |
+| ----------------------- | ---------------------------------------------------------- |
+| `INSUFFICIENT_FUNDS`    | Available balance lower than required lock                 |
+| `MARKET_NOT_ACTIVE`     | Market halted, delisted, or unknown                        |
+| `INVALID_TICK`          | Price is not a multiple of tick size                       |
+| `INVALID_LOT`           | Quantity is not a multiple of lot size                     |
+| `BELOW_MIN_NOTIONAL`    | Notional smaller than market minimum                       |
+| `INVALID_FLAGS`         | Illegal combination from Section 4.2                       |
+| `POST_ONLY_WOULD_CROSS` | Post-only order would take liquidity                       |
+| `SELF_TRADE`            | STP cancelled the taker                                    |
+| `DUPLICATE_ORDER`       | Reserved: `clientOrderId` reused with different parameters |
+| `ORDER_NOT_FOUND`       | Cancel target does not exist or is finished                |
+| `NOT_OWNER`             | Cancel attempted by non-owner                              |
 
 ---
 
@@ -849,34 +849,34 @@ Look up `orderId` in the book index (O(1)); verify `userId`; remove the node; re
 
 ### 6.1 REST (base path `/api/v1`)
 
-| Endpoint | Method | Auth | Purpose |
-| --- | --- | --- | --- |
-| `/healthz` | GET | Public | Liveness |
-| `/auth/signup` | POST | Public | Create account |
-| `/auth/signin` | POST | Public | Access token + refresh cookie |
-| `/auth/refresh` | POST | Cookie | Rotate refresh token |
-| `/auth/signout` | POST | JWT | Revoke refresh family |
-| `/markets` | GET | Public | Market configs |
-| `/order` | POST | JWT | Place order |
-| `/order/:orderId` | GET | JWT | Order status |
-| `/order/:orderId` | DELETE | JWT | Cancel order |
-| `/orders/open` | GET | JWT | Open orders (`?market=`) |
-| `/orders/history` | GET | JWT | Paginated (`?market=&cursor=&limit=`) |
-| `/trades/mine` | GET | JWT | Own trades, paginated |
-| `/depth` | GET | Public | L2 snapshot (`?market=&limit=20`) |
-| `/trades` | GET | Public | Recent public trades |
-| `/klines` | GET | Public | Candles (`?market=&interval=15m&limit=500`) |
-| `/ticker` | GET | Public | 24h stats (`?market=` optional) |
-| `/balances` | GET | JWT | Available/locked per asset |
-| `/wallet/deposit` | POST | JWT | Simulated deposit |
-| `/wallet/withdraw` | POST | JWT | Withdrawal request |
-| `/wallet/history` | GET | JWT | Deposits and withdrawals |
-| `/admin/markets` | POST, PATCH | Admin | Create/update market, set fees |
-| `/admin/markets/:symbol/halt` | POST | Admin | Halt |
-| `/admin/markets/:symbol/resume` | POST | Admin | Resume |
-| `/admin/withdrawals/:id/approve` | POST | Admin | Approve |
-| `/admin/withdrawals/:id/reject` | POST | Admin | Reject |
-| `/admin/fees` | GET | Admin | Fee account totals |
+| Endpoint                         | Method      | Auth   | Purpose                                     |
+| -------------------------------- | ----------- | ------ | ------------------------------------------- |
+| `/healthz`                       | GET         | Public | Liveness                                    |
+| `/auth/signup`                   | POST        | Public | Create account                              |
+| `/auth/signin`                   | POST        | Public | Access token + refresh cookie               |
+| `/auth/refresh`                  | POST        | Cookie | Rotate refresh token                        |
+| `/auth/signout`                  | POST        | JWT    | Revoke refresh family                       |
+| `/markets`                       | GET         | Public | Market configs                              |
+| `/order`                         | POST        | JWT    | Place order                                 |
+| `/order/:orderId`                | GET         | JWT    | Order status                                |
+| `/order/:orderId`                | DELETE      | JWT    | Cancel order                                |
+| `/orders/open`                   | GET         | JWT    | Open orders (`?market=`)                    |
+| `/orders/history`                | GET         | JWT    | Paginated (`?market=&cursor=&limit=`)       |
+| `/trades/mine`                   | GET         | JWT    | Own trades, paginated                       |
+| `/depth`                         | GET         | Public | L2 snapshot (`?market=&limit=20`)           |
+| `/trades`                        | GET         | Public | Recent public trades                        |
+| `/klines`                        | GET         | Public | Candles (`?market=&interval=15m&limit=500`) |
+| `/ticker`                        | GET         | Public | 24h stats (`?market=` optional)             |
+| `/balances`                      | GET         | JWT    | Available/locked per asset                  |
+| `/wallet/deposit`                | POST        | JWT    | Simulated deposit                           |
+| `/wallet/withdraw`               | POST        | JWT    | Withdrawal request                          |
+| `/wallet/history`                | GET         | JWT    | Deposits and withdrawals                    |
+| `/admin/markets`                 | POST, PATCH | Admin  | Create/update market, set fees              |
+| `/admin/markets/:symbol/halt`    | POST        | Admin  | Halt                                        |
+| `/admin/markets/:symbol/resume`  | POST        | Admin  | Resume                                      |
+| `/admin/withdrawals/:id/approve` | POST        | Admin  | Approve                                     |
+| `/admin/withdrawals/:id/reject`  | POST        | Admin  | Reject                                      |
+| `/admin/fees`                    | GET         | Admin  | Fee account totals                          |
 
 **Conventions**
 
@@ -1002,18 +1002,22 @@ flowchart LR
 | Open Orders | Order History | Trade History | Balances                  |
 +--------------------------------------------------------------------------+
 ```
+<!-- //bid price:the heigest that is someone betting to buy that share -->
+<!-- //ask price :the lowest that some one is keeping to sell that share  -->
+<!-- and the difference is called spread -->
+<!-- we are using redis :becuase it helps in redis  -->
 
 ### 8.3 Components
 
-| Component | Data source | Behavior |
-| --- | --- | --- |
-| `TickerHeader` | `ticker@` stream | Last price, 24h change, high/low, volume |
-| `PriceChart` | `/klines` then `kline_*@` | Interval selector 1m/5m/15m/1h/1d; live candle updates |
-| `OrderBook` | `depth@` | 20 levels per side, cumulative bars, spread, click-to-fill price |
-| `MarketTrades` | `trade@` | Last 50 trades, color by taker side |
-| `OrderPanel` | `/markets`, `/balances` | Tabs, limit/market, flags, % slider, validation by tick/lot/min notional |
-| `UserTabs` | `user` stream + REST | Open orders with cancel, history, trades, balances |
-| `ConnectionBadge` | WS client | Connected / reconnecting / stale |
+| Component         | Data source               | Behavior                                                                 |
+| ----------------- | ------------------------- | ------------------------------------------------------------------------ |
+| `TickerHeader`    | `ticker@` stream          | Last price, 24h change, high/low, volume                                 |
+| `PriceChart`      | `/klines` then `kline_*@` | Interval selector 1m/5m/15m/1h/1d; live candle updates                   |
+| `OrderBook`       | `depth@`                  | 20 levels per side, cumulative bars, spread, click-to-fill price         |
+| `MarketTrades`    | `trade@`                  | Last 50 trades, color by taker side                                      |
+| `OrderPanel`      | `/markets`, `/balances`   | Tabs, limit/market, flags, % slider, validation by tick/lot/min notional |
+| `UserTabs`        | `user` stream + REST      | Open orders with cancel, history, trades, balances                       |
+| `ConnectionBadge` | WS client                 | Connected / reconnecting / stale                                         |
 
 ### 8.4 UI rules
 
@@ -1662,68 +1666,68 @@ git push origin main --tags
 
 ## Appendix A: Phase Dependency Summary
 
-| Phase | Name | Depends on | Produces |
-| --- | --- | --- | --- |
-| 0 | Tech setup | none | Dev infrastructure |
-| 1 | Monorepo | 0 | Workspaces, shared types |
-| 2 | Database | 1 | Schema, hypertable, seeds |
-| 3 | Money math | 1 | `@cex/money` |
-| 4 | Auth | 2, 3 | Auth endpoints |
-| 5 | Order book | 3 | Book structure |
-| 6 | Matching | 5 | Matching logic |
-| 7 | Balances and fees | 3, 6 | Settlement |
-| 8 | Messaging | 7 | Streams, runner, idempotency |
-| 9 | Trading API | 4, 8 | Order endpoints |
-| 10 | Recovery | 8 | Journal, snapshots |
-| 11 | DB worker | 2, 8 | Projection |
-| 12 | Market data | 11 | Depth, ticker, klines |
-| 13 | WebSocket | 12 | Live streams |
-| 14 | Wallet and admin | 9, 11 | Money in/out, controls |
-| 15 | UI foundation | 4, 9, 13 | Web base |
-| 16 | Terminal | 15 | Trading screen |
-| 17 | Other pages | 14, 16 | Landing, wallet, orders, admin UI |
-| 18 | Testing | 1 to 17 | Evidence |
-| 19 | Deployment | 18 | Production stack |
-| 20 | Release | 19 | Tagged `v1.0.0` |
+| Phase | Name              | Depends on | Produces                          |
+| ----- | ----------------- | ---------- | --------------------------------- |
+| 0     | Tech setup        | none       | Dev infrastructure                |
+| 1     | Monorepo          | 0          | Workspaces, shared types          |
+| 2     | Database          | 1          | Schema, hypertable, seeds         |
+| 3     | Money math        | 1          | `@cex/money`                      |
+| 4     | Auth              | 2, 3       | Auth endpoints                    |
+| 5     | Order book        | 3          | Book structure                    |
+| 6     | Matching          | 5          | Matching logic                    |
+| 7     | Balances and fees | 3, 6       | Settlement                        |
+| 8     | Messaging         | 7          | Streams, runner, idempotency      |
+| 9     | Trading API       | 4, 8       | Order endpoints                   |
+| 10    | Recovery          | 8          | Journal, snapshots                |
+| 11    | DB worker         | 2, 8       | Projection                        |
+| 12    | Market data       | 11         | Depth, ticker, klines             |
+| 13    | WebSocket         | 12         | Live streams                      |
+| 14    | Wallet and admin  | 9, 11      | Money in/out, controls            |
+| 15    | UI foundation     | 4, 9, 13   | Web base                          |
+| 16    | Terminal          | 15         | Trading screen                    |
+| 17    | Other pages       | 14, 16     | Landing, wallet, orders, admin UI |
+| 18    | Testing           | 1 to 17    | Evidence                          |
+| 19    | Deployment        | 18         | Production stack                  |
+| 20    | Release           | 19         | Tagged `v1.0.0`                   |
 
 ## Appendix B: Port Map
 
-| Service | Dev port | Production |
-| --- | --- | --- |
-| Web (Next.js) | 3000 | internal, via Nginx |
-| API Gateway | 4000 | internal, via Nginx `/api` |
-| WebSocket Server | 8080 | internal, via Nginx `/ws` |
-| PostgreSQL | 5432 (localhost only) | internal only |
-| Redis | 6379 (localhost only) | internal only |
-| Prometheus | 9090 | internal only |
-| Grafana | 3030 | internal or behind auth |
-| Nginx | n/a | 80 and 443 |
+| Service          | Dev port              | Production                 |
+| ---------------- | --------------------- | -------------------------- |
+| Web (Next.js)    | 3000                  | internal, via Nginx        |
+| API Gateway      | 4000                  | internal, via Nginx `/api` |
+| WebSocket Server | 8080                  | internal, via Nginx `/ws`  |
+| PostgreSQL       | 5432 (localhost only) | internal only              |
+| Redis            | 6379 (localhost only) | internal only              |
+| Prometheus       | 9090                  | internal only              |
+| Grafana          | 3030                  | internal or behind auth    |
+| Nginx            | n/a                   | 80 and 443                 |
 
 ## Appendix C: Environment Variables
 
-| Variable | Used by | Example | Notes |
-| --- | --- | --- | --- |
-| `NODE_ENV` | all | `development` | `production` in deploy |
-| `DATABASE_URL` | gateway, db-worker, market-data, db | `postgresql://cex_user:***@postgres:5432/cex_db` |  |
-| `REDIS_URL` | all services | `redis://:***@redis:6379` | Password required |
-| `JWT_ACCESS_SECRET` | gateway | 64+ random chars | Rotate periodically |
-| `JWT_REFRESH_SECRET` | gateway | 64+ random chars |  |
-| `ACCESS_TOKEN_TTL` | gateway | `15m` |  |
-| `REFRESH_TOKEN_TTL` | gateway | `7d` |  |
-| `CORS_ORIGINS` | gateway, ws-server | `https://app.example.com` | Comma-separated allowlist |
-| `API_PORT` | gateway | `4000` |  |
-| `WS_PORT` | ws-server | `8080` |  |
-| `MAX_QUEUE_LEN` | gateway | `50000` | Backpressure threshold |
-| `ENGINE_DATA_DIR` | engine | `/data/engine` | Journal and snapshots |
-| `ENGINE_FSYNC_MS` | engine | `50` | `0` means fsync every write |
-| `SNAPSHOT_EVERY_N` | engine | `100000` |  |
-| `SEED_FROM_DB` | engine | `true` | First boot only |
-| `ENGINE_ASSERT` | engine | `false` | `true` in tests |
-| `DEV_DEPOSIT_MAX` | gateway | `100000000000` | Scaled units; dev faucet cap |
-| `SEED_ADMIN_PASSWORD` | db seed | strong password | Never commit |
-| `NEXT_PUBLIC_API_URL` | web | `https://app.example.com/api/v1` |  |
-| `NEXT_PUBLIC_WS_URL` | web | `wss://app.example.com/ws` |  |
-| `LOG_LEVEL` | all | `info` |  |
+| Variable              | Used by                             | Example                                          | Notes                        |
+| --------------------- | ----------------------------------- | ------------------------------------------------ | ---------------------------- |
+| `NODE_ENV`            | all                                 | `development`                                    | `production` in deploy       |
+| `DATABASE_URL`        | gateway, db-worker, market-data, db | `postgresql://cex_user:***@postgres:5432/cex_db` |                              |
+| `REDIS_URL`           | all services                        | `redis://:***@redis:6379`                        | Password required            |
+| `JWT_ACCESS_SECRET`   | gateway                             | 64+ random chars                                 | Rotate periodically          |
+| `JWT_REFRESH_SECRET`  | gateway                             | 64+ random chars                                 |                              |
+| `ACCESS_TOKEN_TTL`    | gateway                             | `15m`                                            |                              |
+| `REFRESH_TOKEN_TTL`   | gateway                             | `7d`                                             |                              |
+| `CORS_ORIGINS`        | gateway, ws-server                  | `https://app.example.com`                        | Comma-separated allowlist    |
+| `API_PORT`            | gateway                             | `4000`                                           |                              |
+| `WS_PORT`             | ws-server                           | `8080`                                           |                              |
+| `MAX_QUEUE_LEN`       | gateway                             | `50000`                                          | Backpressure threshold       |
+| `ENGINE_DATA_DIR`     | engine                              | `/data/engine`                                   | Journal and snapshots        |
+| `ENGINE_FSYNC_MS`     | engine                              | `50`                                             | `0` means fsync every write  |
+| `SNAPSHOT_EVERY_N`    | engine                              | `100000`                                         |                              |
+| `SEED_FROM_DB`        | engine                              | `true`                                           | First boot only              |
+| `ENGINE_ASSERT`       | engine                              | `false`                                          | `true` in tests              |
+| `DEV_DEPOSIT_MAX`     | gateway                             | `100000000000`                                   | Scaled units; dev faucet cap |
+| `SEED_ADMIN_PASSWORD` | db seed                             | strong password                                  | Never commit                 |
+| `NEXT_PUBLIC_API_URL` | web                                 | `https://app.example.com/api/v1`                 |                              |
+| `NEXT_PUBLIC_WS_URL`  | web                                 | `wss://app.example.com/ws`                       |                              |
+| `LOG_LEVEL`           | all                                 | `info`                                           |                              |
 
 ## Appendix D: Quick Reference Card (for AI prompts)
 
