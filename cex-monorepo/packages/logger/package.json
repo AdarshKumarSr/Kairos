@@ -3,7 +3,40 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "scripts": { "build": "tsc -p tsconfig.json" },
-  "dependencies": { "pino": "^9.5.0" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./apilogs": {
+      "types": "./dist/logs/apilogs.d.ts",
+      "default": "./dist/logs/apilogs.js"
+    },
+    "./errorlogs": {
+      "types": "./dist/logs/errorlogs.d.ts",
+      "default": "./dist/logs/errorlogs.js"
+    },
+    "./debuglogs": {
+      "types": "./dist/logs/debuglogs.d.ts",
+      "default": "./dist/logs/debuglogs.js"
+    },
+    "./logs/apilogs": {
+      "types": "./dist/logs/apilogs.d.ts",
+      "default": "./dist/logs/apilogs.js"
+    },
+    "./logs/errorlogs": {
+      "types": "./dist/logs/errorlogs.d.ts",
+      "default": "./dist/logs/errorlogs.js"
+    },
+    "./logs/debuglogs": {
+      "types": "./dist/logs/debuglogs.d.ts",
+      "default": "./dist/logs/debuglogs.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "winston": "^3.19.0"
+  }
 }

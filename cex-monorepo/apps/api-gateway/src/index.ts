@@ -9,6 +9,7 @@ import { Redis } from 'ioredis';
 import { ZodError } from 'zod';
 import { loadConfig, type Config } from '@cex/config';
 import { prisma, type PrismaClient } from '@cex/db';
+import { logApiRequest, logError, printStartupBanner } from '@cex/logger';
 import { AppError } from './errors/app-error.js';
 import { requireRole } from './middleware/auth.js';
 import { authRoutes } from './routes/auth.js';
@@ -18,6 +19,7 @@ declare module 'fastify' {
     gatewayConfig: Config;
     prisma: PrismaClient;
     redis: Redis;
+    registeredRoutes: Array<{ method: string; path: string }>;
   }
 }
 
@@ -26,9 +28,21 @@ export interface GatewayDependencies { prisma?: PrismaClient; redis?: Redis; }
 export async function buildApp(config: Config = loadConfig(), dependencies: GatewayDependencies = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: false, bodyLimit: 64 * 1024, genReqId: () => randomUUID() });
   const redis = dependencies.redis ?? new Redis(config.REDIS_URL, { maxRetriesPerRequest: 1 });
+  const registeredRoutes: Array<{ method: string; path: string }> = [];
+
   app.decorate('gatewayConfig', config);
   app.decorate('prisma', dependencies.prisma ?? prisma);
   app.decorate('redis', redis);
+  app.decorate('registeredRoutes', registeredRoutes);
+
+  app.addHook('onRoute', (routeOptions) => {
+    const methods = Array.isArray(routeOptions.method) ? routeOptions.method : [routeOptions.method];
+    for (const method of methods) {
+      if (method !== 'HEAD') {
+        registeredRoutes.push({ method, path: routeOptions.url });
+      }
+    }
+  });
 
   await app.register(cors, { origin: config.CORS_ORIGINS.split(',').map((origin) => origin.trim()), credentials: true });
   await app.register(helmet);
@@ -42,8 +56,19 @@ export async function buildApp(config: Config = loadConfig(), dependencies: Gate
     if (typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 429) {
       return reply.code(429).send({ error: { code: 'RATE_LIMITED', message: 'Too many authentication attempts.', details: {} } });
     }
-    request.log.error({ err: error, requestId: request.id }, 'Unhandled request error');
+    logError(error, { requestId: request.id, service: 'api-gateway' });
     return reply.code(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error.', details: {} } });
+  });
+
+  app.addHook('onResponse', async (request, reply) => {
+    logApiRequest({
+      method: request.method,
+      url: request.url,
+      statusCode: reply.statusCode,
+      durationMs: reply.elapsedTime,
+      requestId: request.id,
+      ip: request.ip,
+    });
   });
 
   app.get('/api/v1/healthz', async () => {
@@ -62,5 +87,35 @@ export async function buildApp(config: Config = loadConfig(), dependencies: Gate
 
 if (process.env.NODE_ENV !== 'test') {
   const app = await buildApp();
-  await app.listen({ host: '0.0.0.0', port: app.gatewayConfig.API_PORT });
+  const port = app.gatewayConfig.API_PORT;
+  const host = '0.0.0.0';
+  await app.listen({ host, port });
+
+  let dbStatus: 'connected' | 'error' = 'connected';
+  let redisStatus: 'connected' | 'error' = 'connected';
+  try {
+    await app.prisma.$queryRawUnsafe('SELECT 1');
+  } catch {
+    dbStatus = 'error';
+  }
+  try {
+    await app.redis.ping();
+  } catch {
+    redisStatus = 'error';
+  }
+
+  printStartupBanner({
+    serviceName: '@cex/api-gateway',
+    title: '🚀 KAIROS CEX : API GATEWAY',
+    environment: app.gatewayConfig.NODE_ENV,
+    host,
+    port,
+    baseUrl: `http://localhost:${port}`,
+    healthUrl: `http://localhost:${port}/api/v1/healthz`,
+    dependencies: [
+      { name: 'PostgreSQL 16 (TimescaleDB)', status: dbStatus },
+      { name: 'Redis 7', status: redisStatus },
+    ],
+    routes: app.registeredRoutes,
+  });
 }

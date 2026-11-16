@@ -1,4 +1,4 @@
-﻿# CEX Project Agent Reference
+# CEX Project Agent Reference
 
 This file is the working reference for humans and AI agents contributing to this repository. The detailed product and engineering specification is [cex.md](cex.md); it remains the source of truth when details here are abbreviated.
 
@@ -41,7 +41,7 @@ Follow the Decision Log in `cex.md` (Section 2). Core choices:
 - PostgreSQL 16 with TimescaleDB and Prisma stores durable projections/history.
 - Next.js 14 App Router, Tailwind CSS, `lightweight-charts`, and Zustand.
 - Vitest and fast-check; Playwright for E2E; k6 for load tests.
-- Pino logs, Prometheus metrics, Grafana dashboards; Docker Compose behind Nginx.
+- Winston logs (with apilogs, errorlogs, debuglogs), Prometheus metrics, Grafana dashboards; Docker Compose behind Nginx.
 - Wallet deposits and withdrawals are simulated ledger operations; there is no real blockchain custody.
 
 Do not substitute technologies or invent endpoints, tables, message types, or product behavior that are not specified. If a required decision is absent from `cex.md`, ask the project owner.

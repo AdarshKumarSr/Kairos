@@ -142,7 +142,7 @@ An AI must treat these as fixed unless the user changes them.
 | D13 | Frontend Next.js 14 App Router, TailwindCSS, `lightweight-charts`, Zustand for state | Lightweight, fast |
 | D14 | Testing: Vitest (unit/integration), fast-check (property tests), Playwright (E2E), k6 (load) | Standard, TS-native |
 | D15 | Wallet is simulated (ledger entries only) | No custody liability |
-| D16 | Logging pino (JSON), metrics Prometheus, dashboards Grafana | Standard stack |
+| D16 | Logging winston (JSON), metrics Prometheus, dashboards Grafana | Standard stack |
 | D17 | Deployment Docker Compose behind Nginx (single host) | Simple and reproducible |
 
 ---
@@ -1053,7 +1053,7 @@ flowchart LR
 
 ### 9.5 Logging
 
-- JSON logs via pino with fields `service`, `level`, `msg`, `requestId`, `userId` (when known), `engineSeq` (when relevant).
+- JSON logs via winston with fields `service`, `level`, `msg`, `requestId`, `userId` (when known), `engineSeq` (when relevant). Specialized log modules: `apilogs.ts` (API requests & slow-request warnings), `errorlogs.ts` (error traces & details), `debuglogs.ts` (diagnostics & traces).
 - Do not log secrets or full balances of users at `info` level.
 
 ---
@@ -1155,7 +1155,7 @@ cex-monorepo/
 3. Each package/app gets its own `package.json` (name `@cex/<name>`), `tsconfig.json` extending the base, and `src/index.ts`.
 4. `packages/types` exports: enums (`Side`, `OrderType`, `OrderStatus`, `RejectCode`, `MarketStatus`), `Command`, `Event`, `MarketConfig`, REST DTOs. Uppercase string values only.
 5. `packages/config`: zod schema of environment variables with a `loadConfig()` that fails fast with a readable error.
-6. `packages/logger`: pino instance factory `createLogger(serviceName)`.
+6. `packages/logger`: winston instance factory `createLogger(serviceName)` and specialized loggers (`apilogs`, `errorlogs`, `debuglogs`).
 7. Install dev dependencies at the root: `typescript`, `tsx`, `vitest`, `fast-check`, `eslint`, `@typescript-eslint/*`, `prettier`.
 8. Create the `web` app later (Phase 15); leave `apps/web` as an empty placeholder folder with a `package.json`.
 9. Add a lint rule banning `parseFloat`, `Number(` on identifiers named `price|quantity|amount|balance` (custom `no-restricted-syntax`).
