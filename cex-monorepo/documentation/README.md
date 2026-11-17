@@ -207,6 +207,18 @@ This document tracks **what has been built so far** and **what is pending** acro
   - 13 frontend tests passing in Vitest covering format math, API client token rotation, and Zustand stores.
   - Full static page prerendering and Next.js production build passing with 0 errors.
 
+### Phase 16: Trading Terminal UI (`apps/web/src/app/trade/[symbol]/`)
+- **Master Page & 3-Column Grid**: Responsive layout based on Section 8.2 and `Designs/rendered/Trade_SOL_USDT.html`. Dynamic `[symbol]` route with automatic market configuration resolution.
+- **`TickerHeader`**: 24h ticker metrics (last price, 24h change, 24h high/low, 24h volume), pair switcher dropdown, real-time connection badge (`connected`, `reconnecting`, `disconnected`), and stale-data overlay (> 10s healthcheck).
+- **`PriceChart`**: Interactive candlestick chart powered by TradingView `lightweight-charts` v5. Timeframe selector (`1m`, `5m`, `15m`, `1h`, `1d`), volume histogram overlay, theme awareness, and real-time candle streaming from WebSocket channel `kline_<interval>@<market>`.
+- **`OrderBook`**: Top 16-20 asks and bids from `useBook`, depth percentage bars relative to cumulative volume, live spread banner, and click-to-fill price selection.
+- **`MarketTrades`**: Recent public trades stream with taker side coloring (green for buy, red for sell) and time format.
+- **`OrderPanel`**: Full-featured order entry form supporting Buy/Sell, Limit/Market, Post-Only, and IOC flags. Strictly enforces BigInt money math with percentage slider (25/50/75/100%), tick size, lot size, min notional, and balance pre-flight validation. Includes human-readable engine rejection mapping and unique `clientOrderId` duplicate prevention.
+- **`UserTabs`**: Multi-tab user desk showing Open Orders (with fill progress bar and one-click cancellation), Order History, Trade History, and asset Balances (Available, Locked, Total) streaming from WebSocket `user` events.
+- **Verification & Acceptance**:
+  - 18 frontend unit tests passing in Vitest, including 5 new order validation and zero-float slider tests.
+  - Next.js production build prerendering and compiling all dynamic routes with 0 ESLint warnings.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -238,8 +250,8 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **13**| WebSocket Fan-out | **Done** | `apps/ws-server` client subscriptions, depth resync, and 5k client load test |
 | **14**| Wallet & Admin Operations | **Done** | Simulated ledger deposits/withdrawals, deposit limits, admin controls, audit logs |
 | **15**| Frontend Foundation | **Done** | Next.js 14 App Router, design tokens, auth pages, typed API/WS clients, stores, and UI kit |
-| **16**| Trading Terminal | **Next Up** | Candlestick charts, interactive depth ladder, order form, user open orders |
-| **17**| History & Admin UI | **Pending** | Order history, balance modals, admin monitoring views |
+| **16**| Trading Terminal | **Done** | Responsive trading terminal (`/trade/[symbol]`), TradingView lightweight-charts, depth ladder, BigInt slider order panel, live user tabs |
+| **17**| History & Admin UI | **Next Up** | Order history, balance modals, admin monitoring views |
 | **18**| Verification & Resilience | **Pending** | Fuzz testing, chaos simulation, load tests with k6 |
 | **19**| Observability & Deployment| **Pending** | Prometheus metrics, Grafana dashboards, Nginx reverse proxy |
 | **20**| Release Readiness (`v1.0.0`)| **Pending** | End-to-end verification and demonstration scripts |
@@ -248,12 +260,11 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 16: Trading Terminal (`apps/web/src/app/trade/[symbol]/page.tsx`)**:
-   - `PriceChart`: lightweight-charts candlestick view with OHLCV data from `/api/v1/klines` and live `kline_*@` updates.
-   - `OrderBook`: real-time top 20 asks and bids from `useBook`, depth ladder bars, spread row, and price click-to-fill.
-   - `OrderPanel`: Buy/Sell tabs, Limit/Market toggle, scaled percentage slider (25/50/75/100) using `@cex/money`, Post-Only & IOC flags, client-side pre-flight validations, and loading/error states.
-   - `UserTabs`: open resting orders with one-click cancellation, fill progress, order history, and live user balances.
-   - `TickerHeader`: 24h high/low/volume/change statistics and connection badge.
+1. **Phase 17: Remaining Pages & Admin UI (`apps/web`)**:
+   - `/wallet`: Balances table, simulated deposit and withdrawal request modals, history.
+   - `/orders`: Paginated order history and trade/fee history with filters and CSV export.
+   - `/admin` (role guarded): Market management (halt/resume/fee configuration), pending withdrawal review queue, fee revenue telemetry, and audit log viewer.
+   - Empty/loading/error states and mobile layout polishing.
 
 ---
 

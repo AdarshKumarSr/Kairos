@@ -34,8 +34,8 @@ The project documentation is organized under the [`documentation/`](./documentat
 | **Phase 13: WebSockets** | `apps/ws-server`, client subscriptions, live book and trade streams, depth resync | ✅ Completed |
 | **Phase 14: Wallet & Admin Controls** | Simulated ledger deposits/withdrawals, deposit limits, admin controls, audit logs | ✅ Completed |
 | **Phase 15: Frontend Foundation** | Next.js 14 App Router, design tokens, auth flows, typed API/WS clients, stores, and UI kit | ✅ Completed |
-| **Phase 16: Trading Terminal** | Candlestick charts, interactive order book, depth ladder, order panel, user tabs | ⏳ Next Up |
-| **Phase 17: History & Admin UI** | Wallet modals, order history, and admin console monitoring views | ⏳ Pending |
+| **Phase 16: Trading Terminal** | Responsive trading terminal (`/trade/[symbol]`), TradingView lightweight-charts, depth ladder, BigInt slider order panel, live user tabs | ✅ Completed |
+| **Phase 17: History & Admin UI** | Wallet modals, order history, and admin console monitoring views | ⏳ Next Up |
 | **Phase 18–20: Verification & Release** | Chaos testing, load tests (k6), Prometheus/Grafana dashboards, v1.0.0 | ⏳ Pending |
 
 ---

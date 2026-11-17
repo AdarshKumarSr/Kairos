@@ -102,7 +102,7 @@ class WsClient {
   public setAuthToken(token: string | null) {
     this.authToken = token;
     if (token && this.status === 'connected') {
-      this.send({ type: 'AUTH', token });
+      this.send({ method: 'AUTH', token });
     }
   }
 
@@ -123,12 +123,12 @@ class WsClient {
 
         // Re-authenticate if token exists
         if (this.authToken) {
-          this.send({ type: 'AUTH', token: this.authToken });
+          this.send({ method: 'AUTH', token: this.authToken });
         }
 
         // Resubscribe to all existing channels
         for (const channel of this.subscriptions) {
-          this.send({ type: 'SUBSCRIBE', channel });
+          this.send({ method: 'SUBSCRIBE', params: [channel] });
         }
 
         // Flush pending message queue
@@ -140,8 +140,11 @@ class WsClient {
 
       this.ws.onmessage = (event) => {
         try {
-          const msg: WsServerMessage = JSON.parse(event.data);
-          this.handleIncoming(msg);
+          const raw = JSON.parse(event.data);
+          const normalized = this.normalizeMessage(raw);
+          if (normalized) {
+            this.handleIncoming(normalized);
+          }
         } catch {
           // Ignore invalid JSON frames
         }
@@ -183,7 +186,7 @@ class WsClient {
     }
 
     if (this.status === 'connected') {
-      this.send({ type: 'SUBSCRIBE', channel });
+      this.send({ method: 'SUBSCRIBE', params: [channel] });
     } else if (this.status === 'disconnected') {
       this.connect();
     }
@@ -200,7 +203,7 @@ class WsClient {
       this.subscriptions.delete(channel);
       this.messageHandlers.delete(channel);
       if (this.status === 'connected') {
-        this.send({ type: 'UNSUBSCRIBE', channel });
+        this.send({ method: 'UNSUBSCRIBE', params: [channel] });
       }
     }
   }
@@ -226,6 +229,107 @@ class WsClient {
     }
   }
 
+  private normalizeMessage(raw: unknown): WsServerMessage | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj = raw as Record<string, unknown>;
+
+    // Depth snapshot: { e: 'depthSnapshot', s: market, seq, b, a }
+    if (obj.e === 'depthSnapshot') {
+      return {
+        type: 'DEPTH_SNAPSHOT',
+        market: String(obj.s || obj.market || ''),
+        lastSeq: String(obj.seq ?? '0'),
+        bids: Array.isArray(obj.b) ? (obj.b as [string, string][]) : [],
+        asks: Array.isArray(obj.a) ? (obj.a as [string, string][]) : [],
+      };
+    }
+
+    // Depth delta update: { e: 'depthUpdate', s: market, seq, b, a }
+    if (obj.e === 'depthUpdate') {
+      const deltas: [string, string][] = [
+        ...(Array.isArray(obj.b) ? (obj.b as [string, string][]) : []),
+        ...(Array.isArray(obj.a) ? (obj.a as [string, string][]) : []),
+      ];
+      return {
+        type: 'DEPTH_UPDATE',
+        market: String(obj.s || obj.market || ''),
+        seq: String(obj.seq ?? '0'),
+        deltas,
+      };
+    }
+
+    // Trade: { e: 'trade', s: market, p, q, t, takerSide }
+    if (obj.e === 'trade') {
+      return {
+        type: 'TRADE',
+        market: String(obj.s || obj.market || ''),
+        price: String(obj.p ?? obj.price ?? '0'),
+        quantity: String(obj.q ?? obj.quantity ?? '0'),
+        takerSide: (obj.takerSide as 'BUY' | 'SELL') || (obj.m ? 'SELL' : 'BUY'),
+        ts: Number(obj.t ?? obj.ts ?? Date.now()),
+      };
+    }
+
+    // Ticker: { market, lastPrice, priceChange24h, ... } or { e: 'ticker', ... }
+    if (obj.market && obj.lastPrice) {
+      return {
+        type: 'TICKER',
+        market: String(obj.market),
+        lastPrice: String(obj.lastPrice),
+        priceChange: String(obj.priceChange24h ?? obj.priceChange ?? '0'),
+        priceChangePercent: parseFloat(String(obj.priceChangePercent24h ?? obj.priceChangePercent ?? '0')),
+        high: String(obj.high24h ?? obj.high ?? '0'),
+        low: String(obj.low24h ?? obj.low ?? '0'),
+        baseVolume: String(obj.volume24h ?? obj.baseVolume ?? '0'),
+        quoteVolume: String(obj.quoteVolume24h ?? obj.quoteVolume ?? '0'),
+        tradesCount: Number(obj.tradeCount24h ?? obj.tradesCount ?? 0),
+      };
+    }
+
+    // Kline: { e: 'kline', s, i, k: { t, o, h, l, c, v, x } }
+    if (obj.e === 'kline' && obj.k && typeof obj.k === 'object') {
+      const k = obj.k as Record<string, unknown>;
+      return {
+        type: 'KLINE',
+        market: String(obj.s || obj.market || ''),
+        interval: String(obj.i || obj.interval || '1m'),
+        candle: {
+          t: Number(k.t),
+          o: String(k.o),
+          h: String(k.h),
+          l: String(k.l),
+          c: String(k.c),
+          v: String(k.v),
+          x: Boolean(k.x),
+        },
+      };
+    }
+
+    // User updates: { e: 'orderUpdate' } or { e: 'balanceUpdate' }
+    if (obj.e === 'orderUpdate') {
+      return {
+        type: 'USER_EVENT',
+        event: 'ORDER_UPDATED',
+        data: obj,
+      };
+    }
+
+    if (obj.e === 'balanceUpdate') {
+      return {
+        type: 'USER_EVENT',
+        event: 'BALANCE_UPDATED',
+        data: obj,
+      };
+    }
+
+    // Generic fallback for already-normalized or other types
+    if (obj.type) {
+      return obj as unknown as WsServerMessage;
+    }
+
+    return null;
+  }
+
   private handleIncoming(msg: WsServerMessage) {
     // 1. Check for Depth Gap Detection
     if (msg.type === 'DEPTH_SNAPSHOT') {
@@ -240,7 +344,7 @@ class WsClient {
             this.onDepthGapCb(msg.market);
           }
           // Request snapshot resync
-          this.send({ type: 'SUBSCRIBE', channel: `depth@${msg.market}` });
+          this.send({ method: 'SUBSCRIBE', params: [`depth@${msg.market}`] });
         }
       }
       this.lastDepthSeq.set(msg.market, currentSeq);
@@ -299,7 +403,7 @@ class WsClient {
     this.stopHeartbeat();
     this.heartbeatInterval = setInterval(() => {
       if (this.status === 'connected') {
-        this.send({ type: 'PING' });
+        this.send({ method: 'PING' });
       }
     }, 20000);
   }
