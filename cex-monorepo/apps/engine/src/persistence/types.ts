@@ -1,5 +1,5 @@
 import type { Command, MarketConfig } from '@cex/types';
-import { EngineSnapshot, EngineState } from '../engine/types.js';
+import type { EngineSnapshot, EngineState } from '../engine/types.js';
 
 export interface JournalRecord {
   seq: string;
@@ -44,4 +44,4 @@ export interface RecoveryResult {
   fromSnapshotSeq: bigint | null;
 }
 
-export { EngineSnapshot, EngineState };
+export type { EngineSnapshot, EngineState };

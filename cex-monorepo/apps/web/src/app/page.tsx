@@ -56,7 +56,7 @@ export default function MarketsLandingPage() {
       m.baseAsset.toLowerCase().includes(query.toLowerCase())
   );
 
-  const solTicker = tickers['SOL_USDT'] || {
+  const solTickerRaw = tickers['SOL_USDT'] || {
     market: 'SOL_USDT',
     lastPrice: '14250000000',
     priceChange: '574000000',
@@ -66,6 +66,11 @@ export default function MarketsLandingPage() {
     baseVolume: '120000000000000',
     quoteVolume: '171000000000000',
     tradesCount: 15420,
+  };
+  const solTicker = {
+    ...solTickerRaw,
+    priceChangePercent: solTickerRaw.priceChangePercent ?? 0,
+    tradesCount: solTickerRaw.tradesCount ?? 0,
   };
 
   return (
@@ -266,7 +271,8 @@ export default function MarketsLandingPage() {
                     quoteVolume: '0',
                     tradesCount: 0,
                   };
-                  const isUp = t.priceChangePercent >= 0;
+                  const pct = t.priceChangePercent ?? 0;
+                  const isUp = pct >= 0;
 
                   return (
                     <tr
@@ -290,7 +296,7 @@ export default function MarketsLandingPage() {
                         {t.lastPrice !== '0' ? (
                           <>
                             {isUp ? '+' : ''}
-                            {t.priceChangePercent.toFixed(2)}%
+                            {pct.toFixed(2)}%
                           </>
                         ) : (
                           '0.00%'

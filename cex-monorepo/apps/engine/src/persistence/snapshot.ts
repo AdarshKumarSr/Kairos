@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Engine } from '../engine/engine.js';
-import { EngineSnapshot, EngineState } from '../engine/types.js';
+import type { EngineSnapshot, EngineState } from '../engine/types.js';
 import { JournalReader } from './journal.js';
-import { SnapshotManagerOptions } from './types.js';
+import type { SnapshotManagerOptions } from './types.js';
 
 export class SnapshotManager {
   private readonly dataDir: string;
