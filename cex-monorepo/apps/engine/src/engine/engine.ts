@@ -4,7 +4,9 @@ import { matchOrder } from './matcher.js';
 import {
   Command,
   EngineContext,
+  EngineMarketSnapshot,
   EngineReply,
+  EngineSnapshot,
   EngineState,
   Event,
   IdempotencyRecord,
@@ -17,6 +19,7 @@ import {
   ParsedMarketConfig,
   ProcessResult,
   RejectCode,
+  RestoredEngine,
   Side,
 } from './types.js';
 import { validatePlaceOrder } from './validation.js';
@@ -612,5 +615,74 @@ export class Engine {
 
     // 2. Assert conservation and lock consistency
     state.balanceManager.checkInvariants(state.markets);
+  }
+
+  static snapshot(
+    state: EngineState,
+    engineSeq: bigint = 0n,
+    lastStreamId: string = '0',
+    now: number = 0
+  ): EngineSnapshot {
+    const markets: EngineMarketSnapshot[] = Array.from(state.markets.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([_, ms]) => ({
+        config: {
+          symbol: ms.config.symbol,
+          baseAsset: ms.config.baseAsset,
+          quoteAsset: ms.config.quoteAsset,
+          tickSize: ms.config.tickSize.toString(),
+          lotSize: ms.config.lotSize.toString(),
+          minNotional: ms.config.minNotional.toString(),
+          makerFeeBps: ms.config.makerFeeBps,
+          takerFeeBps: ms.config.takerFeeBps,
+          status: ms.config.status,
+        },
+        book: ms.book.snapshot(),
+      }));
+
+    const idempotency = Array.from(state.idempotency.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+
+    const clientOrderMap = Array.from(state.clientOrderMap.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+
+    return {
+      version: 1,
+      engineSeq: engineSeq.toString(),
+      lastStreamId,
+      timestamp: now,
+      markets,
+      balances: state.balanceManager.snapshot(),
+      idempotency,
+      clientOrderMap,
+    };
+  }
+
+  static restore(snapshot: EngineSnapshot): RestoredEngine {
+    const bm = BalanceManager.restore(snapshot.balances);
+
+    const state: EngineState = {
+      markets: new Map<string, MarketState>(),
+      idempotency: new Map<string, IdempotencyRecord>(snapshot.idempotency),
+      clientOrderMap: new Map<string, string>(snapshot.clientOrderMap),
+      balanceManager: bm,
+    };
+
+    for (const ms of snapshot.markets) {
+      const parsed = Engine.parseMarketConfig(ms.config);
+      const book = Book.restore(ms.book);
+      state.markets.set(parsed.symbol, {
+        config: parsed,
+        book,
+      });
+    }
+
+    return {
+      state,
+      engineSeq: BigInt(snapshot.engineSeq),
+      lastStreamId: snapshot.lastStreamId,
+    };
   }
 }

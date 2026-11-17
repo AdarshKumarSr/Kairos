@@ -12,7 +12,9 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "engine:verify": "tsx src/cli/verify.ts",
+    "engine:snapshot-now": "tsx src/cli/snapshot-now.ts"
   },
   "dependencies": {
     "@cex/config": "0.1.0",

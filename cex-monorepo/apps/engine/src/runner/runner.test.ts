@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Redis } from 'ioredis';
 import {
@@ -378,4 +381,125 @@ describe('Phase 8: Messaging Layer (Redis Streams) & EngineRunner', () => {
 
     await redis.del(streamCmd, streamRep, streamEvt);
   });
+
+  it(
+    '7. EngineRunner with persistence: journals commands, takes snapshots, and recovers exact state on restart',
+    async () => {
+      const testId = `t7_${Date.now()}`;
+      const streamCmd = `test.cmd.${testId}`;
+      const streamRep = `test.rep.${testId}`;
+      const streamEvt = `test.evt.${testId}`;
+      const group = `group_${testId}`;
+      const consumer = `consumer_${testId}`;
+
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cex-runner-persistence-test-'));
+
+      try {
+        const state = Engine.createInitialState([SOL_USDT]);
+        const runner = new EngineRunner(state, {
+          redis,
+          streamCommands: streamCmd,
+          streamReplies: streamRep,
+          streamEvents: streamEvt,
+          groupName: group,
+          consumerName: consumer,
+          blockMs: 50,
+          dataDir: tempDir,
+          fsyncMs: 0,
+          snapshotEveryN: 10,
+          enableJournal: true,
+        });
+
+      await runner.start();
+
+      // Submit 25 deposit commands in 3 batches: 10, 10, 5
+      const sendBatch = async (start: number, end: number) => {
+        const pipe = redis.pipeline();
+        for (let i = start; i <= end; i++) {
+          const cmd: Command = {
+            commandId: `persist-dep-${i}`,
+            type: 'DEPOSIT',
+            userId: `user-${i}`,
+            ts: Date.now() + i,
+            payload: { asset: 'USDT', amount: (100000000n * BigInt(i)).toString() },
+          };
+          pipe.xadd(streamCmd, '*', 'command', JSON.stringify(cmd), 'commandId', cmd.commandId);
+        }
+        await pipe.exec();
+      };
+
+      await sendBatch(1, 10);
+      while (runner.getSeq() < 10n) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+
+      await sendBatch(11, 20);
+      while (runner.getSeq() < 20n) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+
+      await sendBatch(21, 25);
+      while (runner.getSeq() < 25n) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+
+      expect(runner.getSeq()).toBe(25n);
+
+      // Verify snapshots were taken at seq 10 and 20
+      expect(fs.existsSync(path.join(tempDir, 'snapshot-10.json'))).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, 'snapshot-20.json'))).toBe(true);
+
+      // Stop runner
+      await runner.stop();
+
+      // RESTART via createWithRecovery
+      const recoveredRunner = await EngineRunner.createWithRecovery({
+        redis,
+        streamCommands: streamCmd,
+        streamReplies: streamRep,
+        streamEvents: streamEvt,
+        groupName: group,
+        consumerName: consumer,
+        blockMs: 50,
+        dataDir: tempDir,
+        fsyncMs: 0,
+      });
+
+      expect(recoveredRunner.getSeq()).toBe(25n);
+      const recoveredState = recoveredRunner.getState();
+      const bal25 = recoveredState.balanceManager.get('user-25', 'USDT');
+      expect(bal25.available).toBe(2500000000n);
+
+      // Start recovered runner and process 5 more commands
+      await recoveredRunner.start();
+
+      const pipe2 = redis.pipeline();
+      for (let i = 26; i <= 30; i++) {
+        const cmd: Command = {
+          commandId: `persist-dep-${i}`,
+          type: 'DEPOSIT',
+          userId: `user-${i}`,
+          ts: Date.now() + i,
+          payload: { asset: 'USDT', amount: (100000000n * BigInt(i)).toString() },
+        };
+        pipe2.xadd(streamCmd, '*', 'command', JSON.stringify(cmd), 'commandId', cmd.commandId);
+      }
+      await pipe2.exec();
+
+      while (recoveredRunner.getSeq() < 30n) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+
+      expect(recoveredRunner.getSeq()).toBe(30n);
+
+      await recoveredRunner.stop();
+    } finally {
+      await redis.del(streamCmd, streamRep, streamEvt);
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch {
+        // Ignored
+      }
+    }
+  }, 20000);
 });

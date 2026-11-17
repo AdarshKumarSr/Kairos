@@ -31,6 +31,15 @@ export interface SettleTradeResult {
   refund: bigint;
 }
 
+export interface BalanceManagerSnapshot {
+  balances: Array<[string, { available: string; locked: string }]>;
+  feeAccounts: Array<[string, string]>;
+  totalDeposited: Array<[string, string]>;
+  totalWithdrawn: Array<[string, string]>;
+  pendingWithdrawals: Array<[string, { userId: string; asset: string; amount: string }]>;
+  assets: string[];
+}
+
 export class BalanceManager {
   private readonly balances = new Map<string, UserBalance>(); // `${userId}:${asset}` -> UserBalance
   private readonly feeAccounts = new Map<string, bigint>(); // `${asset}` -> bigint
@@ -298,6 +307,75 @@ export class BalanceManager {
         );
       }
     }
+  }
+
+  snapshot(): BalanceManagerSnapshot {
+    const balances = Array.from(this.balances.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]): [string, { available: string; locked: string }] => [
+        k,
+        { available: v.available.toString(), locked: v.locked.toString() },
+      ]);
+
+    const feeAccounts = Array.from(this.feeAccounts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]): [string, string] => [k, v.toString()]);
+
+    const totalDeposited = Array.from(this.totalDeposited.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]): [string, string] => [k, v.toString()]);
+
+    const totalWithdrawn = Array.from(this.totalWithdrawn.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]): [string, string] => [k, v.toString()]);
+
+    const pendingWithdrawals = Array.from(this.pendingWithdrawals.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]): [string, { userId: string; asset: string; amount: string }] => [
+        k,
+        { userId: v.userId, asset: v.asset, amount: v.amount.toString() },
+      ]);
+
+    const assets = Array.from(this.assets).sort((a, b) => a.localeCompare(b));
+
+    return {
+      balances,
+      feeAccounts,
+      totalDeposited,
+      totalWithdrawn,
+      pendingWithdrawals,
+      assets,
+    };
+  }
+
+  static restore(snapshot: BalanceManagerSnapshot): BalanceManager {
+    const bm = new BalanceManager();
+    for (const [k, v] of snapshot.balances) {
+      bm.balances.set(k, {
+        available: BigInt(v.available),
+        locked: BigInt(v.locked),
+      });
+    }
+    for (const [k, v] of snapshot.feeAccounts) {
+      bm.feeAccounts.set(k, BigInt(v));
+    }
+    for (const [k, v] of snapshot.totalDeposited) {
+      bm.totalDeposited.set(k, BigInt(v));
+    }
+    for (const [k, v] of snapshot.totalWithdrawn) {
+      bm.totalWithdrawn.set(k, BigInt(v));
+    }
+    for (const [k, v] of snapshot.pendingWithdrawals) {
+      bm.pendingWithdrawals.set(k, {
+        userId: v.userId,
+        asset: v.asset,
+        amount: BigInt(v.amount),
+      });
+    }
+    for (const a of snapshot.assets) {
+      bm.assets.add(a);
+    }
+    return bm;
   }
 }
 

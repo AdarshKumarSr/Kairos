@@ -81,6 +81,17 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **Telemetry & Slow-Request Warnings**: Detailed request logging with `requestId` and automatic warnings for requests exceeding 200 ms.
 - **Live End-to-End Verification**: Complete lifecycle test (`sign in -> deposit -> place order (201) -> see in /orders/open -> cancel -> verify unlock`) passing against live EngineRunner, Redis, and PostgreSQL.
 
+### Phase 10: Engine Persistence and Recovery (`apps/engine/src/persistence/`)
+- **WAL Append-Only Journal**: Appends `{seq, commandId, ts, streamId, command, crc32}` records to `journal-<startSeq>.log` in `ENGINE_DATA_DIR` before pure execution. Supports configurable fsync (`ENGINE_FSYNC_MS` or `always`).
+- **Atomic Snapshot Mechanism**: Serializes complete deterministic `EngineState` (`BookSnapshot`, `BalanceManagerSnapshot`, idempotency window, `engineSeq`, `lastStreamId`) to `snapshot-<seq>.tmp`, fsyncs, and atomically renames to `snapshot-<seq>.json`. Automatically retains the last 3 snapshots and deletes older snapshots.
+- **Journal Rotation & Cleanup**: Rotates to a new journal segment per snapshot (`journal-<newStartSeq>.log`) and automatically deletes segments older than the 3rd newest snapshot.
+- **Crash Recovery & Torn Tail Truncation**: Recovery scans for the newest valid snapshot, restores state, replays journal records with `seq > snapshot.seq`, detects torn tails and CRC32 mismatches, cleanly truncates corrupted trailing bytes to record boundaries, and runs `Engine.checkInvariants(state)` before resuming.
+- **Stream Alignment**: Stores `lastStreamId` in snapshots and journals, enabling `EngineRunner` to resume consumer group processing without double-execution (guarded by the idempotency window).
+- **Deterministic State SHA-256 Hash**: Cryptographic state hashing proving Invariant 7 (Determinism).
+- **CLI Tools**: `engine:verify` (replays journal and prints state hash) and `engine:snapshot-now` (creates immediate atomic snapshot).
+- **50-Moment Crash Simulation Verification**: Seeded 500-command workload subjected to 50 randomized crash points and torn write injections; verifies byte-identical state SHA-256 hash match against reference engine in all 50 runs with zero acknowledged orders lost (Invariant 10).
+- **High-Throughput Replay Benchmark**: Replays journal records at **> 146,000 commands/sec** (far exceeding the 1,000,000 commands in < 60s requirement).
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -106,8 +117,8 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **7** | Balances & Fees | **Done** | In-memory balance sheet, fee deductions, lock invariants |
 | **8** | Redis Streams Messaging | **Done** | Redis command/reply/event stream integration, engine runner, idempotency |
 | **9** | Trading API | **Done** | Order placement, order cancellation, and book queries |
-| **10**| Journal & Recovery | **Pending** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
-| **11**| DB Projection Worker | **Pending** | `apps/db-worker` consuming stream events into PostgreSQL |
+| **10**| Journal & Recovery | **Done** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
+| **11**| DB Projection Worker | **In Progress** | `apps/db-worker` consuming stream events into PostgreSQL |
 | **12**| Market Data Service | **Pending** | `apps/market-data` ticker, rolling statistics, and k-lines |
 | **13**| WebSocket Fan-out | **Pending** | `apps/ws-server` client subscriptions and depth pushes |
 | **14**| Wallet & Admin Operations | **Pending** | Simulated ledger deposits/withdrawals, admin controls |
@@ -122,11 +133,12 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 10: Engine Persistence & Recovery (`apps/engine/src/persistence/`)**:
-   - Append-only WAL journal (`journal-<startSeq>.log`) with CRC32 records.
-   - Periodic state snapshots (`snapshot-<seq>.json`) serializing engine state (books, balances, fees, idempotency).
-   - Crash recovery: replay journal from snapshot, truncate torn tail at first CRC failure, invariant verification.
-   - Deterministic replay verification across crash runs.
+1. **Phase 11: DB Worker (Idempotent Projection) (`apps/db-worker/`)**:
+   - Consumer group `dbw` on `engine.events` with batching (up to 500 events or 50 ms).
+   - Atomic database transactions projecting `ORDER_*`, `TRADE`, `BALANCE_UPDATED`, and `LedgerEntry` into PostgreSQL.
+   - Idempotent upserts conditioned on `lastEngineSeq < event.engineSeq`.
+   - `XACK` on successful commit only; dead-letter queue (`engine.events.dead`) after 3 failed attempts.
+   - Prometheus projection lag metrics (`dbw_lag_seconds`, `dbw_batch_size`, `dbw_events_total`).
 
 ---
 

@@ -28,8 +28,9 @@ The project documentation is organized under the [`documentation/`](./documentat
 | **Logging Infrastructure** | `@cex/logger` (Winston), structured JSON logs, secret redaction, `apilogs.ts`, `errorlogs.ts`, `debuglogs.ts` | ✅ Completed |
 | **Phase 8: Messaging Layer** | Redis Streams runner (`engine.commands`/`replies`/`events`), gateway client & backpressure | ✅ Completed |
 | **Phase 9: API Gateway Trading Routes** | Order endpoints (`POST /order`, `DELETE /order/:id`), open orders, depth, balance queries | ✅ Completed |
-| **Phase 10: Journal & Recovery** | WAL append-only journal (`journal-*.log`), state snapshots, and crash recovery | ⏳ Next Up |
-| **Phase 11–13: Data & WebSockets** | DB projection worker, market data ticker, and WebSocket fan-out | ⏳ Pending |
+| **Phase 10: Journal & Recovery** | WAL append-only journal (`journal-*.log`), state snapshots, and crash recovery | ✅ Completed |
+| **Phase 11: DB Worker (Idempotent Projection)** | PostgreSQL mirror worker for engine events, outbox pattern, poison recovery | ⏳ Next Up |
+| **Phase 12–13: Data & WebSockets** | Market data ticker, rolling stats, k-lines, and WebSocket fan-out | ⏳ Pending |
 | **Phase 14–17: UI & Admin Tools** | Next.js 14 trading terminal (`apps/web`), wallet modals, admin controls | ⏳ Pending |
 | **Phase 18–20: Verification & Release** | Chaos testing, load tests (k6), Prometheus/Grafana dashboards, v1.0.0 | ⏳ Pending |
 
