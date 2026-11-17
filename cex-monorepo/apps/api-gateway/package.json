@@ -8,6 +8,8 @@
     "@cex/config": "0.1.0",
     "@cex/db": "0.1.0",
     "@cex/logger": "0.1.0",
+    "@cex/money": "0.1.0",
+    "@cex/types": "0.1.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.1",
     "@fastify/helmet": "^12.0.1",

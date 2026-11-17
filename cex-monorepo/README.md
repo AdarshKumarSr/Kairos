@@ -27,8 +27,8 @@ The project documentation is organized under the [`documentation/`](./documentat
 | **Phase 7: Balances & Settlement** | In-memory balance manager, atomic locking, ceiling fees, price-improvement refunds | ✅ Completed |
 | **Logging Infrastructure** | `@cex/logger` (Winston), structured JSON logs, secret redaction, `apilogs.ts`, `errorlogs.ts`, `debuglogs.ts` | ✅ Completed |
 | **Phase 8: Messaging Layer** | Redis Streams runner (`engine.commands`/`replies`/`events`), gateway client & backpressure | ✅ Completed |
-| **Phase 9: API Gateway Trading Routes** | Order endpoints (`POST /order`, `DELETE /order/:id`), open orders, depth, balance queries | ⏳ Next Up |
-| **Phase 10: Journal & Recovery** | WAL append-only journal (`journal-*.log`), state snapshots, and crash recovery | ⏳ Pending |
+| **Phase 9: API Gateway Trading Routes** | Order endpoints (`POST /order`, `DELETE /order/:id`), open orders, depth, balance queries | ✅ Completed |
+| **Phase 10: Journal & Recovery** | WAL append-only journal (`journal-*.log`), state snapshots, and crash recovery | ⏳ Next Up |
 | **Phase 11–13: Data & WebSockets** | DB projection worker, market data ticker, and WebSocket fan-out | ⏳ Pending |
 | **Phase 14–17: UI & Admin Tools** | Next.js 14 trading terminal (`apps/web`), wallet modals, admin controls | ⏳ Pending |
 | **Phase 18–20: Verification & Release** | Chaos testing, load tests (k6), Prometheus/Grafana dashboards, v1.0.0 | ⏳ Pending |

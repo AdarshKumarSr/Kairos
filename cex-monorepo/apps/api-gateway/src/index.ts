@@ -13,6 +13,10 @@ import { logApiRequest, logError, printStartupBanner } from '@cex/logger';
 import { AppError } from './errors/app-error.js';
 import { requireRole } from './middleware/auth.js';
 import { authRoutes } from './routes/auth.js';
+import { tradingRoutes } from './routes/trading.js';
+import { docsRoutes } from './docs/openapi.js';
+import { EngineClient } from './engine/engine-client.js';
+import { MarketConfigCache } from './services/market-config-cache.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -20,20 +24,41 @@ declare module 'fastify' {
     prisma: PrismaClient;
     redis: Redis;
     registeredRoutes: Array<{ method: string; path: string }>;
+    engineClient: EngineClient;
+    marketConfigCache: MarketConfigCache;
   }
 }
 
-export interface GatewayDependencies { prisma?: PrismaClient; redis?: Redis; }
+export interface GatewayDependencies {
+  prisma?: PrismaClient;
+  redis?: Redis;
+  engineClient?: EngineClient;
+  marketConfigCache?: MarketConfigCache;
+}
 
 export async function buildApp(config: Config = loadConfig(), dependencies: GatewayDependencies = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: false, bodyLimit: 64 * 1024, genReqId: () => randomUUID() });
   const redis = dependencies.redis ?? new Redis(config.REDIS_URL, { maxRetriesPerRequest: 1 });
   const registeredRoutes: Array<{ method: string; path: string }> = [];
 
+  const engineClient =
+    dependencies.engineClient ??
+    new EngineClient({
+      redisUrl: config.REDIS_URL,
+      maxQueueLen: config.MAX_QUEUE_LEN,
+    });
+
+  const marketConfigCache =
+    dependencies.marketConfigCache ??
+    new MarketConfigCache(dependencies.prisma ?? prisma, redis);
+  await marketConfigCache.init();
+
   app.decorate('gatewayConfig', config);
   app.decorate('prisma', dependencies.prisma ?? prisma);
   app.decorate('redis', redis);
   app.decorate('registeredRoutes', registeredRoutes);
+  app.decorate('engineClient', engineClient);
+  app.decorate('marketConfigCache', marketConfigCache);
 
   app.addHook('onRoute', (routeOptions) => {
     const methods = Array.isArray(routeOptions.method) ? routeOptions.method : [routeOptions.method];
@@ -77,9 +102,15 @@ export async function buildApp(config: Config = loadConfig(), dependencies: Gate
     return { status: 'ok' };
   });
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
+  await app.register(tradingRoutes, { prefix: '/api/v1' });
   app.get('/api/v1/admin/test', { preHandler: requireRole('ADMIN') }, async () => ({ ok: true }));
 
+  if (config.NODE_ENV !== 'production') {
+    await app.register(docsRoutes);
+  }
+
   app.addHook('onClose', async () => {
+    if (!dependencies.engineClient) await engineClient.close();
     if (!dependencies.redis) await redis.quit();
   });
   return app;

@@ -73,6 +73,14 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **Gateway EngineClient & Backpressure**: Gateway client with `send(command)`, queue backpressure monitoring (`XLEN` vs `MAX_QUEUE_LEN` returning 503 `EngineOverloadedError`), and background reply promise resolver with 2s timeout returning `{ status: 'PENDING' }` (202).
 - **High-Throughput Integration Benchmark**: Processes **8,000–9,700 commands/sec** end-to-end on laptop over live Redis (exceeding the 3,000 cmd/sec target) with 0 unacknowledged entries on shutdown.
 
+### Phase 9: API Gateway Trading Routes (`apps/api-gateway/src/routes/trading.ts`)
+- **Order REST Routes**: `POST /api/v1/order` (Zod validation, tick/lot/minNotional pre-flight checks, 20 req/s/user rate limit, `EngineClient` dispatch, 201/202/422 status mapping), `DELETE /api/v1/order/:orderId` (cancel order, 403 NOT_OWNER, 404 ORDER_NOT_FOUND mapping), and `GET /api/v1/order/:orderId`.
+- **Trading & Market Queries**: `GET /api/v1/markets` (active market configs), `GET /api/v1/depth` (live L2 depth snapshot), `GET /api/v1/orders/open` (open resting orders), `GET /api/v1/orders/history` (cursor-paginated), `GET /api/v1/trades/mine` (cursor-paginated user trade history), `GET /api/v1/balances` (available/locked balances), and simulated `POST /api/v1/wallet/deposit`.
+- **MarketConfigCache**: In-memory and Redis (`marketcfg:{symbol}`) market caching synchronized from PostgreSQL.
+- **OpenAPI 3.1 & Interactive Swagger UI**: Complete specification generated from Zod schemas served at `/docs/openapi.json` and interactive UI at `/docs`.
+- **Telemetry & Slow-Request Warnings**: Detailed request logging with `requestId` and automatic warnings for requests exceeding 200 ms.
+- **Live End-to-End Verification**: Complete lifecycle test (`sign in -> deposit -> place order (201) -> see in /orders/open -> cancel -> verify unlock`) passing against live EngineRunner, Redis, and PostgreSQL.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -97,7 +105,7 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **6** | Matching Logic | **Done** | Pure synchronous engine matching, maker execution, STP, 184k ops/s |
 | **7** | Balances & Fees | **Done** | In-memory balance sheet, fee deductions, lock invariants |
 | **8** | Redis Streams Messaging | **Done** | Redis command/reply/event stream integration, engine runner, idempotency |
-| **9** | Trading API | **Pending** | Order placement, order cancellation, and book queries |
+| **9** | Trading API | **Done** | Order placement, order cancellation, and book queries |
 | **10**| Journal & Recovery | **Pending** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
 | **11**| DB Projection Worker | **Pending** | `apps/db-worker` consuming stream events into PostgreSQL |
 | **12**| Market Data Service | **Pending** | `apps/market-data` ticker, rolling statistics, and k-lines |
@@ -114,12 +122,11 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 9: API Gateway Trading Routes (`apps/api-gateway/src/routes/`)**:
-   - `MarketConfigCache`: load markets from Postgres into Redis (`marketcfg:*`) and memory.
-   - Trade routes: `POST /api/v1/order`, `GET /api/v1/order/:orderId`, `DELETE /api/v1/order/:orderId`, `GET /api/v1/orders/open`.
-   - Public market data queries: `GET /api/v1/depth`, `GET /api/v1/markets`.
-   - Balance query: `GET /api/v1/balances`.
-   - Postman & automated integration testing against live API Gateway and live Engine.
+1. **Phase 10: Engine Persistence & Recovery (`apps/engine/src/persistence/`)**:
+   - Append-only WAL journal (`journal-<startSeq>.log`) with CRC32 records.
+   - Periodic state snapshots (`snapshot-<seq>.json`) serializing engine state (books, balances, fees, idempotency).
+   - Crash recovery: replay journal from snapshot, truncate torn tail at first CRC failure, invariant verification.
+   - Deterministic replay verification across crash runs.
 
 ---
 
