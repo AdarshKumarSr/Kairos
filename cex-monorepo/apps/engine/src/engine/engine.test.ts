@@ -53,7 +53,7 @@ describe('Matching Engine Core (Phase 6)', () => {
 
   describe('Table-Driven Functional Tests', () => {
     it('1. Full fill: incoming limit buy matches resting limit sell exactly', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places LIMIT SELL 10 SOL @ 150.00
@@ -117,7 +117,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('2. Partial fill: incoming limit buy partially fills resting limit sell', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places LIMIT SELL 10 SOL @ 150.00
@@ -175,7 +175,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('3. Multi-level sweep: large order sweeps 3 price levels at resting prices', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Place 3 sell orders at 150, 151, 152
@@ -241,7 +241,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('4. Time priority at equal price: FIFO matching for orders at same level', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places first SELL 5 SOL @ 150.00
@@ -314,7 +314,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('5. Market buy exhausts budget mid-level', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places SELL 10 SOL @ 100.00
@@ -372,7 +372,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('6. Market sell on thin book cancels unfilled remainder', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places BUY 2 SOL @ 100.00
@@ -425,7 +425,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('7. IOC remainder cancelled: unfilled limit IOC does not rest on book', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places SELL 3 SOL @ 150.00
@@ -482,7 +482,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('8. Post-only rejected when crossing and accepted when not', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places SELL 5 SOL @ 150.00
@@ -555,7 +555,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('9. STP: cancels taker when crossing own maker order', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places SELL 5 SOL @ 150.00
@@ -612,7 +612,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('10. Halted market rejects PLACE_ORDER but accepts CANCEL_ORDER', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       let seq = 1n;
 
       // Alice places an order while ACTIVE
@@ -688,7 +688,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('11. Cancel unknown order returns ORDER_NOT_FOUND', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       const res = Engine.process(
         state,
         {
@@ -709,7 +709,7 @@ describe('Matching Engine Core (Phase 6)', () => {
     });
 
     it('12. Duplicate commandId returns the same events (idempotency)', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       const cmd: Command = {
         commandId: 'cmd-idem-1',
         type: 'PLACE_ORDER',
@@ -736,7 +736,7 @@ describe('Matching Engine Core (Phase 6)', () => {
 
   describe('Fuzz Testing: 100,000 Commands Invariant Verification', () => {
     it('100,000 random commands: best_bid < best_ask and quantity consistency at every step', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       const book = state.markets.get('SOL_USDT')!.book;
 
       // Seeded pseudo-random generator (LCG) for 100% deterministic reproducibility
@@ -845,7 +845,7 @@ describe('Matching Engine Core (Phase 6)', () => {
 
   describe('Performance Benchmark', () => {
     it('Benchmark: processes at least 100,000 orders/sec in-process', () => {
-      const state = Engine.createInitialState([SOL_USDT_CONFIG]);
+      const state = Engine.createInitialState([SOL_USDT_CONFIG], { stubBalances: true });
       const count = 100_000;
 
       // Pre-generate 100,000 place commands

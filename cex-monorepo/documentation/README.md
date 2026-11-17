@@ -55,6 +55,17 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **Table-Driven Verification & Fuzzing**: 15 test suites covering sweeps, time priority FIFO, thin books, IOC cancels, and a 100,000-command seeded fuzz run confirming $best\_bid < best\_ask$ and zero crossed books.
 - **High-Throughput Benchmark**: Achieves **> 184,000 orders/sec** in-process on laptop (exceeding the 100,000 orders/sec threshold).
 
+### Phase 7: Balances, Locking, Fees, and Settlement (`apps/engine/src/balance/`)
+- **In-Memory Balance Sheet (`BalanceManager`)**: Authoritative in-engine balance manager tracking per-user, per-asset available and locked balances, cumulative deposits/withdrawals, and accumulated exchange fee reserves.
+- **Atomic Lock Lifecycle & Price-Improvement Refunds**: Pre-trade locking on order placement (base for SELL, quote via `mulDivCeil` for BUY limit, quoteQuantity for BUY market). Trade settlement directly decrements locked balances, credits bought assets net of fees, and refunds buyer quote locks when filled at price improvement.
+- **Exchange-Favoring Ceiling Fees**: Strictly adheres to Invariant 8 / Section 5.3 with `mulDivCeil` ensuring zero fractional deficit on any fill.
+- **Continuous Invariant Verification (`Engine.checkInvariants(state)`)**: Enforces:
+  1. Book orderliness ($best\_bid < best\_ask$).
+  2. Conservation per asset: $totalDeposited - totalWithdrawn \equiv \sum(available + locked) + fee$.
+  3. Lock consistency: $user.locked \equiv \sum(order locks) + \sum(withdrawal locks)$.
+- **100,000-Command Invariant Fuzz Verification**: 100,000 randomized operations (deposits, limit/market orders, cancellations) verifying all 3 invariants at *every single step*.
+- **Section 5.3 Worked Example Verification**: Exact-to-the-unit replication of Section 5.3 worked example (Alice & Bob 10 SOL @ 142.50 fill, maker/taker fee splits, price-improvement refund, and fee reserves).
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -77,7 +88,7 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **—** | Logging System | **Done** | `@cex/logger`, Winston, `apilogs.ts`, `errorlogs.ts`, `debuglogs.ts` |
 | **5** | Order-Book Structure | **Done** | Price-level linked lists, limit order books, FIFO queues, snapshots |
 | **6** | Matching Logic | **Done** | Pure synchronous engine matching, maker execution, STP, 184k ops/s |
-| **7** | Balances & Fees | **Pending** | In-memory balance sheet, fee deductions, lock invariants |
+| **7** | Balances & Fees | **Done** | In-memory balance sheet, fee deductions, lock invariants |
 | **8** | Redis Streams Messaging | **Pending** | Redis command/reply/event stream integration & engine runner |
 | **9** | Trading API | **Pending** | Order placement, order cancellation, and book queries |
 | **10**| Journal & Recovery | **Pending** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
@@ -96,12 +107,9 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 7: Live Balances & Conservation (`apps/engine`)**:
-   - In-memory balances authority, lock management, and fee collection.
-   - Settle trades with price-improvement refunds for takers.
-   - Assert conservation per asset ($total\_available + total\_locked = constant$) and lock consistency.
-2. **Phase 8: Messaging Layer (Redis Streams)**:
-   - Redis command/reply/event stream integration & engine runner loop.
+1. **Phase 8: Messaging Layer (Redis Streams) & Engine Runner (`apps/engine/src/runner/`)**:
+   - Redis command/reply/event stream integration.
+   - Deterministic event loop reading from stream, dispatching through `Engine.process()`, writing events to output stream and replies.
    - Backpressure and 202 accepted timeouts.
 
 ---

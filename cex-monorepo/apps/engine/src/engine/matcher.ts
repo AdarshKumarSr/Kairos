@@ -19,6 +19,15 @@ export function matchOrder(
   const isBuy = order.side === Side.BUY;
   const oppositeSide = isBuy ? Side.SELL : Side.BUY;
 
+  // Track touched price levels to emit DEPTH_DELTA
+  const touchedLevels = new Map<string, { side: Side; price: bigint }>();
+  // Track touched user/asset pairs to emit BALANCE_UPDATED
+  const touchedBalances = new Set<string>();
+
+  const markBalanceTouched = (userId: string, asset: string) => {
+    touchedBalances.add(`${userId}:${asset}`);
+  };
+
   // 1. Post-only check
   if (order.postOnly) {
     const bestOpposite = isBuy ? book.bestAsk() : book.bestBid();
@@ -26,6 +35,8 @@ export function matchOrder(
       const wouldCross = isBuy ? order.price >= bestOpposite.price : order.price <= bestOpposite.price;
       if (wouldCross) {
         state.balanceManager.unlock(order.userId, order.lockAsset, order.lockAmount);
+        markBalanceTouched(order.userId, order.lockAsset);
+
         events.push({
           engineSeq: ctx.engineSeq.toString(),
           commandId,
@@ -42,19 +53,40 @@ export function matchOrder(
             reason: 'Post-only order would cross existing liquidity',
           },
         });
+
+        // Emit BALANCE_UPDATED for the unlocked balance
+        for (const key of touchedBalances) {
+          const [uId, asset] = key.split(':') as [string, string];
+          const bal = state.balanceManager.get(uId, asset);
+          events.push({
+            engineSeq: ctx.engineSeq.toString(),
+            commandId,
+            type: 'BALANCE_UPDATED',
+            ts: ctx.now,
+            data: {
+              userId: uId,
+              asset,
+              available: bal.available.toString(),
+              locked: bal.locked.toString(),
+              reason: 'ORDER_REJECTED',
+            },
+          });
+        }
+
         return { events };
       }
     }
   }
 
-  // Track touched price levels to emit DEPTH_DELTA at the end
-  const touchedLevels = new Map<string, { side: Side; price: bigint }>();
   let tradeIndex = 1;
   let stpTriggered = false;
 
   let takerRemaining = order.quantity;
   let remainingBudget = order.quoteQuantity;
+  let takerLockedRemaining = order.lockAmount;
   let filledSoFar = 0n;
+
+  markBalanceTouched(order.userId, order.lockAsset);
 
   // 2. Matching loop
   while (true) {
@@ -96,13 +128,9 @@ export function matchOrder(
     // STP: Self-Trade Prevention (CANCEL_TAKER)
     if (maker.userId === order.userId) {
       stpTriggered = true;
-      let unlockRemaining = 0n;
-      if (order.type === OrderType.LIMIT) {
-        unlockRemaining = isBuy ? lockForBuyLimit(order.price, takerRemaining) : takerRemaining;
-      } else {
-        unlockRemaining = isBuy ? remainingBudget : takerRemaining;
-      }
-      state.balanceManager.unlock(order.userId, order.lockAsset, unlockRemaining);
+      state.balanceManager.unlock(order.userId, order.lockAsset, takerLockedRemaining);
+      takerLockedRemaining = 0n;
+      markBalanceTouched(order.userId, order.lockAsset);
 
       events.push({
         engineSeq: ctx.engineSeq.toString(),
@@ -159,14 +187,62 @@ export function matchOrder(
     const makerFullyFilled = reduceResult ? reduceResult.fullyFilled : false;
     const makerRemainingAfter = reduceResult ? reduceResult.remainingQuantity : 0n;
 
-    // Calculate fees in received asset
-    // Buyer receives base (tradeQty), pays fee in base
-    // Seller receives quote (quoteAmt), pays fee in quote
-    const buyerFee = calcFee(tradeQty, isBuy ? order.market.config.takerFeeBps : order.market.config.makerFeeBps);
-    const sellerFee = calcFee(quoteAmt, isBuy ? order.market.config.makerFeeBps : order.market.config.takerFeeBps);
+    // Calculate exact lock to consume from buyer
+    let buyerLockToConsume = 0n;
+    if (isBuy) {
+      // Buyer is taker
+      if (order.type === OrderType.MARKET) {
+        buyerLockToConsume = quoteAmt;
+        takerLockedRemaining -= quoteAmt;
+      } else {
+        // Limit buy
+        if (takerRemaining === 0n) {
+          buyerLockToConsume = takerLockedRemaining;
+          takerLockedRemaining = 0n;
+        } else {
+          const newNeeded = lockForBuyLimit(order.price, takerRemaining);
+          buyerLockToConsume = takerLockedRemaining - newNeeded;
+          takerLockedRemaining = newNeeded;
+        }
+      }
+    } else {
+      // Buyer is maker
+      const oldMakerLock = maker.lockedAmount;
+      const newMakerLock = makerFullyFilled ? 0n : lockForBuyLimit(maker.price, makerRemainingAfter);
+      buyerLockToConsume = oldMakerLock - newMakerLock;
+      maker.lockedAmount = newMakerLock;
+    }
 
-    const takerFee = isBuy ? buyerFee : sellerFee;
-    const makerFee = isBuy ? sellerFee : buyerFee;
+    if (!isBuy) {
+      // Seller is taker
+      takerLockedRemaining -= tradeQty;
+    } else {
+      // Seller is maker
+      maker.lockedAmount = makerRemainingAfter;
+    }
+
+    // Settle balances per trade (Section 5.3)
+    const buyerUserId = isBuy ? order.userId : maker.userId;
+    const sellerUserId = isBuy ? maker.userId : order.userId;
+
+    const settleResult = state.balanceManager.settleTrade({
+      buyerUserId,
+      sellerUserId,
+      market: order.market.config,
+      takerSide: order.side,
+      tradePrice,
+      tradeQty,
+      quoteAmt,
+      buyerLockToConsume,
+    });
+
+    markBalanceTouched(buyerUserId, order.market.config.baseAsset);
+    markBalanceTouched(buyerUserId, order.market.config.quoteAsset);
+    markBalanceTouched(sellerUserId, order.market.config.baseAsset);
+    markBalanceTouched(sellerUserId, order.market.config.quoteAsset);
+
+    const takerFee = isBuy ? settleResult.buyerFee : settleResult.sellerFee;
+    const makerFee = isBuy ? settleResult.sellerFee : settleResult.buyerFee;
 
     const tradeId = `t-${ctx.engineSeq}-${tradeIndex++}`;
     touchedLevels.set(`${oppositeSide}:${tradePrice}`, { side: oppositeSide, price: tradePrice });
@@ -219,7 +295,7 @@ export function matchOrder(
       order.type === OrderType.LIMIT
         ? takerRemaining === 0n
         : isBuy
-          ? remainingBudget === 0n || takerRemaining === 0n
+          ? remainingBudget === 0n
           : takerRemaining === 0n;
 
     if (isFullyFilled) {
@@ -245,11 +321,7 @@ export function matchOrder(
       // Order has remainder
       if (order.type === OrderType.LIMIT) {
         if (!order.ioc) {
-          // Rest on book
-          const remainingLock = isBuy
-            ? lockForBuyLimit(order.price, takerRemaining)
-            : takerRemaining;
-
+          // Rest on book with exact remaining lock
           const restingOrder: EngineOrder = {
             orderId: order.orderId,
             userId: order.userId,
@@ -262,7 +334,7 @@ export function matchOrder(
             engineSeq: ctx.engineSeq,
             postOnly: order.postOnly,
             ioc: order.ioc,
-            lockedAmount: remainingLock,
+            lockedAmount: takerLockedRemaining,
           };
 
           book.add(restingOrder);
@@ -291,11 +363,10 @@ export function matchOrder(
             },
           });
         } else {
-          // IOC remainder cancelled
-          const unlockAmount = isBuy
-            ? lockForBuyLimit(order.price, takerRemaining)
-            : takerRemaining;
-          state.balanceManager.unlock(order.userId, order.lockAsset, unlockAmount);
+          // IOC remainder cancelled: unlock remaining lock
+          state.balanceManager.unlock(order.userId, order.lockAsset, takerLockedRemaining);
+          takerLockedRemaining = 0n;
+          markBalanceTouched(order.userId, order.lockAsset);
 
           events.push({
             engineSeq: ctx.engineSeq.toString(),
@@ -317,9 +388,10 @@ export function matchOrder(
           });
         }
       } else {
-        // Market order remainder cancelled
-        const unlockAmount = isBuy ? remainingBudget : takerRemaining;
-        state.balanceManager.unlock(order.userId, order.lockAsset, unlockAmount);
+        // Market order remainder cancelled: unlock remaining lock
+        state.balanceManager.unlock(order.userId, order.lockAsset, takerLockedRemaining);
+        takerLockedRemaining = 0n;
+        markBalanceTouched(order.userId, order.lockAsset);
 
         events.push({
           engineSeq: ctx.engineSeq.toString(),
@@ -357,6 +429,25 @@ export function matchOrder(
         side,
         price: price.toString(),
         quantity: quantity.toString(),
+      },
+    });
+  }
+
+  // 5. Emit BALANCE_UPDATED for each touched balance (Section 5.2 Step 7)
+  for (const key of touchedBalances) {
+    const [uId, asset] = key.split(':') as [string, string];
+    const bal = state.balanceManager.get(uId, asset);
+    events.push({
+      engineSeq: ctx.engineSeq.toString(),
+      commandId,
+      type: 'BALANCE_UPDATED',
+      ts: ctx.now,
+      data: {
+        userId: uId,
+        asset,
+        available: bal.available.toString(),
+        locked: bal.locked.toString(),
+        reason: 'TRADE',
       },
     });
   }

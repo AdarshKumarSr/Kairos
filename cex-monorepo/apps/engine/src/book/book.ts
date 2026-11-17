@@ -140,6 +140,12 @@ export class Book {
     return entry ? entry.node.value : null;
   }
 
+  *getAllOrders(): IterableIterator<EngineOrder> {
+    for (const entry of this.index.values()) {
+      yield entry.node.value;
+    }
+  }
+
   bestBid(): PriceLevel | null {
     return this.bids.best();
   }

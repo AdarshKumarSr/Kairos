@@ -1,3 +1,4 @@
+import { BalanceManager, StubBalanceManager } from '../balance/balance-manager.js';
 import { Book } from '../book/book.js';
 import { matchOrder } from './matcher.js';
 import {
@@ -13,17 +14,28 @@ import {
   ProcessResult,
   RejectCode,
   Side,
-  StubBalanceManager,
 } from './types.js';
 import { validatePlaceOrder } from './validation.js';
 
 export class Engine {
-  static createInitialState(configs?: MarketConfig[]): EngineState {
+  static createInitialState(
+    configs?: MarketConfig[],
+    options?: { stubBalances?: boolean } | BalanceManager
+  ): EngineState {
+    let bm: BalanceManager;
+    if (options instanceof BalanceManager || (options && 'checkAndLock' in options && 'settleTrade' in options)) {
+      bm = options as BalanceManager;
+    } else if (options && 'stubBalances' in options && options.stubBalances) {
+      bm = new StubBalanceManager();
+    } else {
+      bm = new BalanceManager();
+    }
+
     const state: EngineState = {
       markets: new Map<string, MarketState>(),
       idempotency: new Map<string, Event[]>(),
       clientOrderMap: new Map<string, string>(),
-      balanceManager: new StubBalanceManager(),
+      balanceManager: bm,
     };
 
     if (configs) {
@@ -140,7 +152,7 @@ export class Engine {
           },
         });
 
-        // Match order
+        // Match order & settle balances
         const matchResult = matchOrder(state, validOrder, command.commandId, ctx);
         for (const ev of matchResult.events) {
           events.push(ev);
@@ -245,6 +257,138 @@ export class Engine {
               quantity: levelQty.toString(),
             },
           });
+
+          // Emit BALANCE_UPDATED for released lock
+          const bal = state.balanceManager.get(removed.userId, lockAsset);
+          events.push({
+            engineSeq: ctx.engineSeq.toString(),
+            commandId: command.commandId,
+            type: 'BALANCE_UPDATED',
+            ts: ctx.now,
+            data: {
+              userId: removed.userId,
+              asset: lockAsset,
+              available: bal.available.toString(),
+              locked: bal.locked.toString(),
+              reason: 'CANCEL_ORDER',
+            },
+          });
+        }
+        break;
+      }
+
+      case 'DEPOSIT': {
+        const userId = String(command.userId ?? command.payload.userId ?? '');
+        const asset = String(command.payload.asset ?? '');
+        const amount = BigInt(String(command.payload.amount ?? '0'));
+        const refId = String(command.payload.refId ?? '');
+
+        state.balanceManager.deposit(userId, asset, amount);
+        const bal = state.balanceManager.get(userId, asset);
+
+        events.push({
+          engineSeq: ctx.engineSeq.toString(),
+          commandId: command.commandId,
+          type: 'BALANCE_UPDATED',
+          ts: ctx.now,
+          data: {
+            userId,
+            asset,
+            available: bal.available.toString(),
+            locked: bal.locked.toString(),
+            delta: amount.toString(),
+            reason: 'DEPOSIT',
+            refId,
+          },
+        });
+        break;
+      }
+
+      case 'WITHDRAW_REQUEST': {
+        const userId = String(command.userId ?? command.payload.userId ?? '');
+        const asset = String(command.payload.asset ?? '');
+        const amount = BigInt(String(command.payload.amount ?? '0'));
+        const withdrawalId = String(command.payload.withdrawalId ?? command.payload.refId ?? command.commandId);
+
+        const ok = state.balanceManager.withdrawRequest(userId, asset, amount, withdrawalId);
+        if (!ok) {
+          events.push({
+            engineSeq: ctx.engineSeq.toString(),
+            commandId: command.commandId,
+            type: 'ORDER_REJECTED',
+            ts: ctx.now,
+            data: {
+              userId,
+              asset,
+              code: RejectCode.INSUFFICIENT_FUNDS,
+              reason: `Insufficient available ${asset} for withdrawal request`,
+            },
+          });
+        } else {
+          const bal = state.balanceManager.get(userId, asset);
+          events.push({
+            engineSeq: ctx.engineSeq.toString(),
+            commandId: command.commandId,
+            type: 'BALANCE_UPDATED',
+            ts: ctx.now,
+            data: {
+              userId,
+              asset,
+              available: bal.available.toString(),
+              locked: bal.locked.toString(),
+              delta: (-amount).toString(),
+              reason: 'WITHDRAW_REQUEST',
+              withdrawalId,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'WITHDRAW_COMPLETE': {
+        const withdrawalId = String(command.payload.withdrawalId ?? command.payload.refId ?? command.commandId);
+        const pw = state.balanceManager.withdrawComplete(withdrawalId);
+        if (pw) {
+          const bal = state.balanceManager.get(pw.userId, pw.asset);
+          events.push({
+            engineSeq: ctx.engineSeq.toString(),
+            commandId: command.commandId,
+            type: 'BALANCE_UPDATED',
+            ts: ctx.now,
+            data: {
+              userId: pw.userId,
+              asset: pw.asset,
+              available: bal.available.toString(),
+              locked: bal.locked.toString(),
+              delta: (-pw.amount).toString(),
+              reason: 'WITHDRAWAL',
+              withdrawalId,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'WITHDRAW_REJECT': {
+        const withdrawalId = String(command.payload.withdrawalId ?? command.payload.refId ?? command.commandId);
+        const pw = state.balanceManager.withdrawReject(withdrawalId);
+        if (pw) {
+          const bal = state.balanceManager.get(pw.userId, pw.asset);
+          events.push({
+            engineSeq: ctx.engineSeq.toString(),
+            commandId: command.commandId,
+            type: 'BALANCE_UPDATED',
+            ts: ctx.now,
+            data: {
+              userId: pw.userId,
+              asset: pw.asset,
+              available: bal.available.toString(),
+              locked: bal.locked.toString(),
+              delta: pw.amount.toString(),
+              reason: 'WITHDRAW_REJECT',
+              withdrawalId,
+            },
+          });
         }
         break;
       }
@@ -321,7 +465,7 @@ export class Engine {
 
     // 3. Debug assertion mode (ENGINE_ASSERT=true)
     if (process.env.ENGINE_ASSERT === 'true') {
-      Engine.assertInvariants(state);
+      Engine.checkInvariants(state);
     }
 
     // 4. Save to idempotency cache
@@ -333,7 +477,8 @@ export class Engine {
     return { events };
   }
 
-  static assertInvariants(state: EngineState): void {
+  static checkInvariants(state: EngineState): void {
+    // 1. Assert no crossed books
     for (const market of state.markets.values()) {
       const bestBid = market.book.bestBid();
       const bestAsk = market.book.bestAsk();
@@ -345,5 +490,8 @@ export class Engine {
         }
       }
     }
+
+    // 2. Assert conservation and lock consistency
+    state.balanceManager.checkInvariants(state.markets);
   }
 }
