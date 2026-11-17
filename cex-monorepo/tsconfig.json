@@ -2,5 +2,5 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "noEmit": true },
   "include": ["apps/**/*.ts", "packages/**/*.ts", "logs/**/*.ts"],
-  "exclude": ["**/dist", "**/node_modules"]
+  "exclude": ["**/dist", "**/node_modules", "apps/web"]
 }

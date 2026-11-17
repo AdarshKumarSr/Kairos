@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Admin console</title>
+<script src="57bbae50-a81f-4bdc-a90f-b96b11064bb4"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1iIq129k.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1isq129k.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1iAq129k.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1iEq129k.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1i8q1w.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwl1FgtIU.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwlRFgtIU.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwl9FgtIU.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwl5FgtIU.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwlBFgg.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("516a8260-0fe9-4c90-982e-9f15c6fc9b78") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("516a8260-0fe9-4c90-982e-9f15c6fc9b78") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("516a8260-0fe9-4c90-982e-9f15c6fc9b78") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/intertight/v9/NGSnv5HMAFg6IuGlBNMjxJEL2VmU3NS7Z2mj0QiaVi5SkK8.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/intertight/v9/NGSnv5HMAFg6IuGlBNMjxJEL2VmU3NS7Z2mj0QiaXy5SkK8.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/intertight/v9/NGSnv5HMAFg6IuGlBNMjxJEL2VmU3NS7Z2mj0QiaVy5SkK8.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/intertight/v9/NGSnv5HMAFg6IuGlBNMjxJEL2VmU3NS7Z2mj0QiaWC5SkK8.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/intertight/v9/NGSnv5HMAFg6IuGlBNMjxJEL2VmU3NS7Z2mj0QiaVC5SkK8.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/intertight/v9/NGSnv5HMAFg6IuGlBNMjxJEL2VmU3NS7Z2mj0QiaVS5SkK8.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter Tight';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("d431babc-e475-48b9-9c72-22d1131bad8f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+.kx{font-family:'Inter',system-ui,sans-serif}
+.kx[data-theme="paper"]{--bg:#F7F6F3;--surface:#FFFFFF;--surface2:#EFEDE8;--line:#DDD9D0;--line2:#E9E6DF;--text:#101218;--text2:#3B3F4A;--muted:#5E6270;--faint:#8A8E99;--accent:#5B3FFF;--on-accent:#FFFFFF;--accent-text:#4B30E6;--accent-hover:#3A22C8;--accent-soft:rgba(91,63,255,0.10);--up:#0E7A52;--on-up:#FFFFFF;--up-soft:rgba(14,122,82,0.10);--down:#C4263D;--on-down:#FFFFFF;--down-text:#C4263D;--down-soft:rgba(196,38,61,0.09);--warn:#8A5A00;--warn-soft:rgba(138,90,0,0.12);--warn-line:#D9B26A;--overlay:rgba(16,18,24,0.45);--upfill:rgba(14,122,82,0.60);--downfill:rgba(196,38,61,0.60)}
+.kx[data-theme="mist"]{--bg:#EEF1F6;--surface:#FFFFFF;--surface2:#E5E9F1;--line:#D3D9E5;--line2:#E2E6EE;--text:#0F1320;--text2:#3A4155;--muted:#566074;--faint:#8790A3;--accent:#5B3FFF;--on-accent:#FFFFFF;--accent-text:#4B30E6;--accent-hover:#3A22C8;--accent-soft:rgba(91,63,255,0.10);--up:#0E7A52;--on-up:#FFFFFF;--up-soft:rgba(14,122,82,0.10);--down:#C4263D;--on-down:#FFFFFF;--down-text:#C4263D;--down-soft:rgba(196,38,61,0.09);--warn:#8A5A00;--warn-soft:rgba(138,90,0,0.12);--warn-line:#D9B26A;--overlay:rgba(15,19,32,0.45);--upfill:rgba(14,122,82,0.60);--downfill:rgba(196,38,61,0.60)}
+.kx[data-theme="night"]{--bg:#0E0F14;--surface:#15171E;--surface2:#1C1F28;--line:#272A35;--line2:#1E212A;--text:#F2F1EE;--text2:#C9CAD2;--muted:#9A9DAC;--faint:#626675;--accent:#8470FF;--on-accent:#0E0F14;--accent-text:#A99BFF;--accent-hover:#BDB2FF;--accent-soft:rgba(132,112,255,0.18);--up:#2EBD85;--on-up:#0E0F14;--up-soft:rgba(46,189,133,0.14);--down:#F6465D;--on-down:#0E0F14;--down-text:#F6657A;--down-soft:rgba(246,70,93,0.14);--warn:#E6B450;--warn-soft:rgba(224,169,59,0.14);--warn-line:#5A4A22;--overlay:rgba(5,6,10,0.72);--upfill:rgba(46,189,133,0.55);--downfill:rgba(246,70,93,0.55)}
+.kx[data-theme="dusk"]{--bg:#14112B;--surface:#1C1840;--surface2:#25205A;--line:#332E6B;--line2:#28235A;--text:#EFECFF;--text2:#CFCAF0;--muted:#A29CD0;--faint:#6E68A6;--accent:#A594FF;--on-accent:#14112B;--accent-text:#C3B8FF;--accent-hover:#D6CEFF;--accent-soft:rgba(165,148,255,0.18);--up:#3DD9A0;--on-up:#14112B;--up-soft:rgba(61,217,160,0.14);--down:#FF6B86;--on-down:#14112B;--down-text:#FF8CA0;--down-soft:rgba(255,107,134,0.15);--warn:#F0C060;--warn-soft:rgba(240,192,96,0.15);--warn-line:#6B5A2E;--overlay:rgba(8,6,24,0.75);--upfill:rgba(61,217,160,0.55);--downfill:rgba(255,107,134,0.55)}
+body{margin:0}
+a{color:var(--text);text-decoration:none}
+button{font-family:inherit}
+input::placeholder{color:var(--muted)}
+input:focus,select:focus{border-color:var(--accent) !important}
+</style>
+</helmet>
+<div class="kx" data-theme="{{theme}}" style="position: relative; min-height: 1500px; background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <!-- Nav -->
+  <header style="border-bottom: 1px solid var(--line)">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 32px; min-height: 64px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; box-sizing: border-box">
+      <div style="display: flex; align-items: center; gap: 40px; flex-wrap: wrap">
+        <a href="Main.dc.html" aria-label="Kairos home" style="display: inline-block; white-space: nowrap; line-height: 1; padding: 8px 0; color: var(--text); font-family: 'Inter Tight', 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 28px; letter-spacing: -0.035em">ka<span aria-hidden="true" style="display: inline-block; position: relative; width: 0.19em; height: 0.55em; margin: 0 0.07em 0 0.05em; background: var(--accent); border-radius: 0.04em"><span style="position: absolute; left: 50%; width: 0.04em; margin-left: -0.02em; top: -0.28em; bottom: -0.09em; background: var(--accent); border-radius: 0.02em"></span></span>ros</a>
+        <nav aria-label="Primary" style="display: flex; gap: 28px; font-size: 14px; flex-wrap: wrap">
+          <a href="Main.dc.html" style="color: var(--muted)">Markets</a>
+          <a href="Trade.dc.html" style="color: var(--muted)">Trade</a>
+          <a href="Wallet.dc.html" style="color: var(--muted)">Wallet</a>
+          <a href="Orders.dc.html" style="color: var(--muted)">Orders</a>
+          <a href="Admin.dc.html" style="color: var(--text); font-weight: 500">Admin</a>
+        </nav>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div role="group" aria-label="Colour theme" style="display: flex; align-items: center">
+          <sc-for list="{{themes}}" as="t" hint-placeholder-count="4">
+            <button type="button" aria-label="{{t.label}} theme" title="{{t.label}}" aria-pressed="{{t.on}}" sc-camel-on-click="{{t.pick}}" style="width: 44px; height: 44px; padding: 0; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center">
+              <svg width="26" height="26" sc-camel-view-box="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="none" stroke="{{t.sel}}" stroke-width="1.6"></circle><circle cx="12" cy="12" r="8" fill="{{t.ring}}"></circle><path d="M12 5.2 A6.8 6.8 0 0 0 12 18.8 Z" fill="{{t.bg}}"></path><path d="M12 5.2 A6.8 6.8 0 0 1 12 18.8 Z" fill="{{t.ac}}"></path></svg>
+            </button>
+          </sc-for>
+        </div>
+        <span style="padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); font-size: 12px; font-weight: 500">Admin</span>
+        <span style="font-size: 13px; color: var(--text2)">admin@example.com</span>
+      </div>
+    </div>
+  </header>
+
+  <main style="flex: 1">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 48px 32px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 40px">
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.01em">Admin console</h1>
+        <span style="font-size: 14px; color: var(--muted)">Manage markets, review withdrawals and track fee revenue. Every action is written to the audit log.</span>
+      </div>
+
+      <!-- Fee revenue -->
+      <section style="display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600">Fee revenue</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px">
+          <sc-for list="{{fees}}" as="f" hint-placeholder-count="4">
+            <div style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 20px 24px; display: flex; flex-direction: column; gap: 10px">
+              <span style="font-size: 12px; color: var(--muted)">Collected in {{f.asset}}</span>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 500">{{f.total}}</span>
+              <span style="font-size: 12px; color: var(--muted)">Maker {{f.maker}} · Taker {{f.taker}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- Markets -->
+      <section style="display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600">Markets</h2>
+          <button type="button" style="min-height: 44px; padding: 0 20px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer">Create market</button>
+        </div>
+        <div style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow-x: auto">
+          <div style="min-width: 880px">
+            <div style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr 1fr 1fr 1.5fr; gap: 16px; align-items: center; padding: 0 24px; min-height: 48px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted)">
+              <span>Market</span><span>Status</span><span style="text-align: right">Maker fee</span><span style="text-align: right">Taker fee</span><span style="text-align: right">Tick / Lot</span><span></span>
+            </div>
+            <sc-for list="{{markets}}" as="m" hint-placeholder-count="4">
+              <div style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr 1fr 1fr 1.5fr; gap: 16px; align-items: center; padding: 0 24px; min-height: 64px; border-bottom: 1px solid var(--line2); font-size: 14px">
+                <span style="font-weight: 500">{{m.symbol}}</span>
+                <div style="display: flex">
+                  <sc-if value="{{m.active}}" hint-placeholder-val="{{ true }}"><span style="padding: 4px 10px; border-radius: 999px; background: var(--up-soft); color: var(--up); font-size: 12px; font-weight: 500">Active</span></sc-if>
+                  <sc-if value="{{m.halted}}" hint-placeholder-val="{{ false }}"><span style="padding: 4px 10px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 500">Halted</span></sc-if>
+                </div>
+                <span style="font-family: 'IBM Plex Mono', monospace; text-align: right">{{m.maker}}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; text-align: right">{{m.taker}}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; text-align: right; color: var(--text2)">{{m.tickLot}}</span>
+                <div style="display: flex; justify-content: flex-end; gap: 8px">
+                  <button type="button" sc-camel-on-click="{{m.editFees}}" style="min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--text); font-size: 13px; cursor: pointer">Edit fees</button>
+                  <sc-if value="{{m.active}}" hint-placeholder-val="{{ true }}">
+                    <button type="button" sc-camel-on-click="{{m.toggle}}" style="min-height: 36px; padding: 0 14px; border: 1px solid var(--warn-line); border-radius: 6px; background: none; color: var(--warn); font-size: 13px; font-weight: 500; cursor: pointer">Halt</button>
+                  </sc-if>
+                  <sc-if value="{{m.halted}}" hint-placeholder-val="{{ false }}">
+                    <button type="button" sc-camel-on-click="{{m.toggle}}" style="min-height: 36px; padding: 0 14px; border: none; border-radius: 6px; background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 600; cursor: pointer">Resume</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <span style="font-size: 13px; color: var(--muted)">While a market is halted, traders can still cancel orders but cannot place new ones.</span>
+      </section>
+
+      <!-- Withdrawals -->
+      <section style="display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; align-items: baseline; gap: 12px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600">Pending withdrawals</h2>
+          <span style="font-size: 13px; color: var(--muted)">{{pendingCount}} waiting</span>
+        </div>
+        <div style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow-x: auto">
+          <div style="min-width: 880px">
+            <div style="display: grid; grid-template-columns: 1.4fr 1.5fr 0.7fr 1.2fr 1.5fr; gap: 16px; align-items: center; padding: 0 24px; min-height: 48px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted)">
+              <span>Requested</span><span>User</span><span>Asset</span><span style="text-align: right">Amount</span><span></span>
+            </div>
+            <sc-for list="{{withdrawals}}" as="w" hint-placeholder-count="3">
+              <div style="display: grid; grid-template-columns: 1.4fr 1.5fr 0.7fr 1.2fr 1.5fr; gap: 16px; align-items: center; padding: 0 24px; min-height: 64px; border-bottom: 1px solid var(--line2); font-size: 14px">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text2)">{{w.time}}</span>
+                <span style="color: var(--text2)">{{w.user}}</span>
+                <span>{{w.asset}}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; text-align: right">{{w.amount}}</span>
+                <div style="display: flex; justify-content: flex-end; gap: 8px">
+                  <button type="button" sc-camel-on-click="{{w.reject}}" style="min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--down-text); font-size: 13px; font-weight: 500; cursor: pointer">Reject</button>
+                  <button type="button" sc-camel-on-click="{{w.approve}}" style="min-height: 36px; padding: 0 14px; border: none; border-radius: 6px; background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 600; cursor: pointer">Approve</button>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{noPending}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 48px 24px; text-align: center; font-size: 14px; color: var(--muted)">No withdrawals are waiting for review.</div>
+            </sc-if>
+          </div>
+        </div>
+      </section>
+
+      <!-- Audit log -->
+      <section style="display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600">Recent audit log</h2>
+        <div style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow-x: auto">
+          <div style="min-width: 880px">
+            <div style="display: grid; grid-template-columns: 1.4fr 1.5fr 1.4fr 2.4fr; gap: 16px; align-items: center; padding: 0 24px; min-height: 48px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted)">
+              <span>Time</span><span>Actor</span><span>Action</span><span>Details</span>
+            </div>
+            <sc-for list="{{audit}}" as="a" hint-placeholder-count="6">
+              <div style="display: grid; grid-template-columns: 1.4fr 1.5fr 1.4fr 2.4fr; gap: 16px; align-items: center; padding: 0 24px; min-height: 52px; border-bottom: 1px solid var(--line2); font-size: 14px">
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text2)">{{a.time}}</span>
+                <span style="color: var(--text2)">{{a.actor}}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px">{{a.action}}</span>
+                <span style="color: var(--muted)">{{a.meta}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Fee modal -->
+  <sc-if value="{{modalOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--overlay); display: flex; align-items: flex-start; justify-content: center; padding: 200px 16px 16px; box-sizing: border-box">
+      <div role="dialog" aria-modal="true" aria-labelledby="mt" style="width: 100%; max-width: 440px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <h2 id="mt" style="margin: 0; font-size: 20px; font-weight: 600">Edit fees: {{modalMarket}}</h2>
+            <span style="font-size: 13px; line-height: 1.5; color: var(--muted)">Fees are in basis points (100 bps = 1%) and charged in the asset each side receives.</span>
+          </div>
+          <button type="button" aria-label="Close" sc-camel-on-click="{{closeModal}}" style="flex: none; width: 44px; height: 44px; margin: -8px -8px 0 0; border: none; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center">
+            <svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <form style="display: flex; flex-direction: column; gap: 20px" sc-camel-on-submit="{{saveFees}}">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label for="mk" style="font-size: 13px; font-weight: 500">Maker fee (bps)</label>
+            <input id="mk" name="maker" type="text" inputmode="numeric" value="{{modalMaker}}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 15px; outline: none">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label for="tk" style="font-size: 13px; font-weight: 500">Taker fee (bps)</label>
+            <input id="tk" name="taker" type="text" inputmode="numeric" value="{{modalTaker}}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 15px; outline: none">
+          </div>
+          <div style="display: flex; gap: 12px">
+            <button type="button" sc-camel-on-click="{{closeModal}}" style="flex: 1; min-height: 48px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--text); font-size: 15px; font-weight: 500; cursor: pointer">Cancel</button>
+            <button type="submit" style="flex: 1; min-height: 48px; border: none; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-size: 15px; font-weight: 600; cursor: pointer">Save fees</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1500},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;paper&quot;,&quot;mist&quot;,&quot;night&quot;,&quot;dusk&quot;],&quot;default&quot;:&quot;paper&quot;}}">
+class Component extends DCLogic {  kxList() {
+    return [
+      { id: 'paper', label: 'Paper', bg: '#F7F6F3', ac: '#5B3FFF', ring: '#CFCBC1' },
+      { id: 'mist', label: 'Mist', bg: '#EEF1F6', ac: '#5B3FFF', ring: '#C3CAD9' },
+      { id: 'night', label: 'Night', bg: '#0E0F14', ac: '#8470FF', ring: '#4A4E5E' },
+      { id: 'dusk', label: 'Dusk', bg: '#14112B', ac: '#A594FF', ring: '#5A5499' }
+    ];
+  }
+  kxTheme() {
+    let t = null;
+    try { t = window.localStorage.getItem('kairos-theme'); } catch (e) {}
+    if (!t) t = this.state && this.state.theme;
+    if (!t) t = this.props.theme;
+    return this.kxList().some(x => x.id === t) ? t : 'paper';
+  }
+  kxVals() {
+    const cur = this.kxTheme();
+    return {
+      theme: cur,
+      themes: this.kxList().map(x => ({
+        label: x.label, bg: x.bg, ac: x.ac, ring: x.ring,
+        on: x.id === cur, sel: x.id === cur ? x.ac : 'none',
+        pick: () => {
+          try { window.localStorage.setItem('kairos-theme', x.id); } catch (e) {}
+          this.setState({ theme: x.id });
+        }
+      }))
+    };
+  }
+  componentDidMount() {
+    try { this._kx = () => this.forceUpdate(); window.addEventListener('storage', this._kx); } catch (e) {}
+  }
+  componentWillUnmount() {
+    try { window.removeEventListener('storage', this._kx); } catch (e) {}
+  }
+  renderVals() {
+    return Object.assign({}, this.renderValsBase(), this.kxVals());
+  }
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      markets: [
+        { symbol: 'SOL_USDT', halted: false, maker: 8, taker: 10, tick: '0.01', lot: '0.01' },
+        { symbol: 'BTC_USDT', halted: false, maker: 8, taker: 10, tick: '0.10', lot: '0.0001' },
+        { symbol: 'ETH_USDT', halted: false, maker: 8, taker: 10, tick: '0.01', lot: '0.001' },
+        { symbol: 'DOGE_USDT', halted: true, maker: 10, taker: 12, tick: '0.0001', lot: '1' }
+      ],
+      withdrawals: [
+        { id: 'w1', time: '2026-11-02 09:12:40', user: 'trader.one@example.com', asset: 'USDT', amount: '250.00' },
+        { id: 'w2', time: '2026-11-02 08:47:05', user: 'bot.alpha@example.com', asset: 'SOL', amount: '40.00' },
+        { id: 'w3', time: '2026-11-01 22:30:18', user: 'trader.two@example.com', asset: 'BTC', amount: '0.01500000' }
+      ],
+      audit: [
+        { time: '2026-11-01 17:02:11', actor: 'admin@example.com', action: 'WITHDRAW_APPROVE', meta: 'USDT 1,200.00 for trader.three@example.com' },
+        { time: '2026-11-01 15:40:52', actor: 'admin@example.com', action: 'HALT_MARKET', meta: 'DOGE_USDT' },
+        { time: '2026-11-01 12:18:30', actor: 'admin@example.com', action: 'MARKET_UPDATE', meta: 'ETH_USDT fees 8 / 10 bps' },
+        { time: '2026-10-31 20:05:44', actor: 'admin@example.com', action: 'WITHDRAW_REJECT', meta: 'ETH 0.25000000 for user@example.com' },
+        { time: '2026-10-31 09:30:02', actor: 'admin@example.com', action: 'MARKET_CREATE', meta: 'DOGE_USDT' },
+        { time: '2026-10-30 18:11:09', actor: 'admin@example.com', action: 'RESUME_MARKET', meta: 'BTC_USDT' }
+      ],
+      editing: null
+    };
+  }
+  stamp() { return '2026-11-02 14:59:00'; }
+  log(action, meta) {
+    return [{ time: this.stamp(), actor: 'admin@example.com', action, meta }].concat(this.state.audit).slice(0, 6);
+  }
+  renderValsBase() {
+    const s = this.state;
+    const markets = s.markets.map(m => ({
+      symbol: m.symbol,
+      active: !m.halted,
+      halted: m.halted,
+      maker: (m.maker / 100).toFixed(2) + '%',
+      taker: (m.taker / 100).toFixed(2) + '%',
+      tickLot: m.tick + ' / ' + m.lot,
+      editFees: () => this.setState({ editing: m.symbol }),
+      toggle: () => this.setState({
+        markets: s.markets.map(x => x.symbol === m.symbol ? { ...x, halted: !x.halted } : x),
+        audit: this.log(m.halted ? 'RESUME_MARKET' : 'HALT_MARKET', m.symbol)
+      })
+    }));
+    const withdrawals = s.withdrawals.map(w => ({
+      time: w.time, user: w.user, asset: w.asset, amount: w.amount,
+      approve: () => this.setState({
+        withdrawals: s.withdrawals.filter(x => x.id !== w.id),
+        audit: this.log('WITHDRAW_APPROVE', w.asset + ' ' + w.amount + ' for ' + w.user)
+      }),
+      reject: () => this.setState({
+        withdrawals: s.withdrawals.filter(x => x.id !== w.id),
+        audit: this.log('WITHDRAW_REJECT', w.asset + ' ' + w.amount + ' for ' + w.user)
+      })
+    }));
+    const fees = [
+      { asset: 'USDT', total: '1,284.62', maker: '0.08%', taker: '0.10%' },
+      { asset: 'SOL', total: '18.4210', maker: '0.08%', taker: '0.10%' },
+      { asset: 'BTC', total: '0.00412000', maker: '0.08%', taker: '0.10%' },
+      { asset: 'ETH', total: '0.08250000', maker: '0.08%', taker: '0.10%' }
+    ];
+    const em = s.markets.find(x => x.symbol === s.editing);
+    return {
+      fees, markets, withdrawals,
+      audit: s.audit,
+      pendingCount: s.withdrawals.length,
+      noPending: s.withdrawals.length === 0,
+      modalOpen: !!em,
+      modalMarket: em ? em.symbol : '',
+      modalMaker: em ? String(em.maker) : '',
+      modalTaker: em ? String(em.taker) : '',
+      closeModal: () => this.setState({ editing: null }),
+      saveFees: (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        let mk = em ? em.maker : 0, tk = em ? em.taker : 0;
+        try {
+          const f = e.target.elements;
+          const a = parseInt(f.maker.value, 10), b = parseInt(f.taker.value, 10);
+          if (!isNaN(a) && a >= 0) mk = a;
+          if (!isNaN(b) && b >= 0) tk = b;
+        } catch (err) {}
+        this.setState({
+          markets: s.markets.map(x => x.symbol === s.editing ? { ...x, maker: mk, taker: tk } : x),
+          audit: this.log('MARKET_UPDATE', s.editing + ' fees ' + mk + ' / ' + tk + ' bps'),
+          editing: null
+        });
+      }
+    };
+  }
+}
+</script>
+
+
+<script>
+(function(){
+  const routes={"Main.dc.html":"7b03ac8a-c77d-4084-8773-72c338539c34","SignIn.dc.html":"5965e3bb-af93-4745-82c5-7650c4664081","SignUp.dc.html":"ddae88be-52a1-4e66-b1aa-31463629b448","Trade.dc.html":"6ee8bf33-3c46-42d0-9a5b-e2a8b157e467","Wallet.dc.html":"da445aaa-8500-4f5e-b62e-72ac7ad0b248","Orders.dc.html":"6e572f16-c17d-4323-8217-8a20f54a2334","Admin.dc.html":"4efcded0-2e19-4208-a255-0dd9ffb42abf"};
+  document.addEventListener('click',function(event){
+    const link=event.target.closest('a[href]');
+    if(!link) return;
+    const file=link.getAttribute('href').split(/[?#]/)[0].split('/').pop();
+    const page=routes[file];
+    if(!page) return;
+    event.preventDefault();
+    window.parent.postMessage({__kairosNavigate:page},'*');
+  },true);
+})();
+</script>
+</body></html>

@@ -12,7 +12,7 @@
     "dev": "tsx watch apps/api-gateway/src/index.ts",
     "lint": "eslint . --ext .ts --max-warnings=0",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "engine:verify": "npm --workspace=@cex/engine run engine:verify",
     "engine:snapshot-now": "npm --workspace=@cex/engine run engine:snapshot-now",
     "dbw:rebuild": "npm --workspace=@cex/db-worker run dbw:rebuild"

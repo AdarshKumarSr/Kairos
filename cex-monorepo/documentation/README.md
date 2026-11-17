@@ -172,6 +172,41 @@ This document tracks **what has been built so far** and **what is pending** acro
   - Mixed deposit, withdrawal request, withdrawal rejection, withdrawal approval, and trading simulation verifying Invariant 2 (Conservation) across all assets ($totalDeposited - totalWithdrawn \equiv circulating$).
   - Full test suite passing across all 22 Phase 9/14 trading and administrative test cases.
 
+### Phase 15: Frontend Foundation (`apps/web/`)
+- **Next.js 14 App Router & Design System**:
+  - Full modern Next.js 14 application in `@cex/web` configured with TypeScript, PostCSS, and Tailwind CSS.
+  - Multi-theme design tokens matching `Designs/Kairos.html` across 4 color schemes: `night` (default dark institutional), `paper` (warm light), `mist` (cool light), and `dusk` (deep violet dark).
+  - Typography configuration: `Inter` (sans), `Inter Tight` (display headings), and `IBM Plex Mono` (monospace financial figures and prices).
+  - Interactive theme switcher (`ThemeSelector`) persisting user choice in `localStorage`.
+- **Zero-Float Money Formatting (`src/lib/format.ts`)**:
+  - `parseInputToScaled`: converts user decimal strings directly to scaled $10^8$ BigInts via `@cex/money`'s `toScaled`.
+  - `formatPrice`, `formatQty`, `formatPct`, `formatBalance`: precision-aware formatting without IEEE 754 precision errors.
+- **Typed API Gateway Client (`src/lib/api.ts`)**:
+  - Full typed fetch wrapper supporting authentication, market data, order placement/cancellation, depth, klines, balance, deposit/withdrawal, and administrative endpoints.
+  - In-memory access token storage with automatic 401 interception: invokes `/api/v1/auth/refresh` with credentials, rotates token, and transparently retries failed requests before redirecting to `/signin`.
+- **Resilient WebSocket Client (`src/lib/ws.ts`)**:
+  - Subscriptions with automatic resubscribe on reconnect (`depth@`, `trade@`, `ticker@`, `kline_*@`, and authenticated `user` stream).
+  - Exponential backoff with random jitter (500 ms to 10 s).
+  - Client-side depth sequence gap detection (`seq > lastSeq + 1n`) triggering point-to-point snapshot resync.
+  - Heartbeat ping-pong keeping connections alive.
+- **Zustand State Stores (`src/stores/`)**:
+  - `useAuth`: reactive session state, signin/signup/signout actions, and token injection.
+  - `useMarket`: active trading pair selection, market configs, and ticker caches.
+  - `useBook`: order book depth ladders, cumulative totals, and live spread calculations.
+  - `useOrders`: open resting orders, order status transition tracking, and execution history.
+  - `useBalances`: per-asset available and locked balance tracking.
+  - `useTheme`: reactive theme state and CSS attribute switching.
+- **Base UI Kit (`src/components/ui/`)**:
+  - Accessible, themed primitives: `Button` (with buy/sell/loading variants), `Input` (with prefix/suffix/mono options), `Tabs` (line and pill styles), `Table` (with monospace alignment), `Modal` (with backdrop blur and ESC close), `Toast` (with auto-dismiss), `Skeleton` (shimmering loaders).
+- **Core Pages & Route Protection**:
+  - `/` (`app/page.tsx`): Markets landing page with interactive market overview, live tickers, search filter, and sparkline graphics.
+  - `/signin` (`app/signin/page.tsx`): Authenticated login page matching designs with order book artwork, field validation, and error states.
+  - `/signup` (`app/signup/page.tsx`): Registration page with password complexity validation and redirect.
+  - `AuthGuard` (`components/auth/AuthGuard.tsx`): Route protector managing authentication and RBAC checks.
+- **Verification & Acceptance**:
+  - 13 frontend tests passing in Vitest covering format math, API client token rotation, and Zustand stores.
+  - Full static page prerendering and Next.js production build passing with 0 errors.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -202,8 +237,8 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **12**| Market Data Service | **Done** | `apps/market-data` depth mirror, 24h ticker, throttled feeds, and k-lines |
 | **13**| WebSocket Fan-out | **Done** | `apps/ws-server` client subscriptions, depth resync, and 5k client load test |
 | **14**| Wallet & Admin Operations | **Done** | Simulated ledger deposits/withdrawals, deposit limits, admin controls, audit logs |
-| **15**| Frontend Foundation | **Next Up** | Next.js 14 App Router layout, design tokens, responsive trading shell |
-| **16**| Trading Terminal | **Pending** | Candlestick charts, interactive depth ladder, order form |
+| **15**| Frontend Foundation | **Done** | Next.js 14 App Router, design tokens, auth pages, typed API/WS clients, stores, and UI kit |
+| **16**| Trading Terminal | **Next Up** | Candlestick charts, interactive depth ladder, order form, user open orders |
 | **17**| History & Admin UI | **Pending** | Order history, balance modals, admin monitoring views |
 | **18**| Verification & Resilience | **Pending** | Fuzz testing, chaos simulation, load tests with k6 |
 | **19**| Observability & Deployment| **Pending** | Prometheus metrics, Grafana dashboards, Nginx reverse proxy |
@@ -213,11 +248,12 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 15: Frontend Foundation (`apps/web/`)**:
-   - Inspect wireframes and screen specs in `Designs/Kairos.html` (7 pages ready: Landing/Markets, Sign In, Sign Up, Trade Terminal, Wallet, Orders, Admin Console).
-   - Set up Next.js 14 App Router with Tailwind CSS theme matching dark institutional trading palette.
-   - Install Lucide icons, fonts, lightweight chart adapters, and Zustand state stores.
-   - Responsive multi-pane trading layout shell (Navbar, Market Header, Chart, Order Book, Depth, Order Form, User Positions/Orders).
+1. **Phase 16: Trading Terminal (`apps/web/src/app/trade/[symbol]/page.tsx`)**:
+   - `PriceChart`: lightweight-charts candlestick view with OHLCV data from `/api/v1/klines` and live `kline_*@` updates.
+   - `OrderBook`: real-time top 20 asks and bids from `useBook`, depth ladder bars, spread row, and price click-to-fill.
+   - `OrderPanel`: Buy/Sell tabs, Limit/Market toggle, scaled percentage slider (25/50/75/100) using `@cex/money`, Post-Only & IOC flags, client-side pre-flight validations, and loading/error states.
+   - `UserTabs`: open resting orders with one-click cancellation, fill progress, order history, and live user balances.
+   - `TickerHeader`: 24h high/low/volume/change statistics and connection badge.
 
 ---
 
