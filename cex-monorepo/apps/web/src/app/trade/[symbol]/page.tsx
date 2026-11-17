@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { BrandLogo } from '../../../components/BrandLogo';
-import { ThemeSelector } from '../../../components/ThemeSelector';
+import { Navbar } from '../../../components/Navbar';
 import { TickerHeader } from '../../../components/trading/TickerHeader';
 import { PriceChart } from '../../../components/trading/PriceChart';
 import { OrderBook } from '../../../components/trading/OrderBook';
@@ -62,7 +60,7 @@ export default function TradingTerminalPage() {
   const rawSymbol = typeof params?.symbol === 'string' ? params.symbol : 'SOL_USDT';
   const symbol = rawSymbol.toUpperCase();
 
-  const { isAuthenticated, user, signout, accessToken } = useAuth();
+  const { isAuthenticated, accessToken } = useAuth();
   const { setSnapshot, applyDelta } = useBook();
   const { setTicker } = useMarket();
   const { setBalances } = useBalances();
@@ -240,62 +238,7 @@ export default function TradingTerminalPage() {
 
   return (
     <div className="min-h-screen bg-bg text-text flex flex-col font-sans">
-      {/* Top Navigation */}
-      <header className="border-b border-line bg-bg sticky top-0 z-30">
-        <div className="px-5 min-h-[56px] flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-9 flex-wrap">
-            <BrandLogo size="md" />
-            <nav className="flex items-center gap-6 text-sm flex-wrap">
-              <Link href="/" className="text-muted hover:text-text transition-colors">
-                Markets
-              </Link>
-              <Link
-                href={`/trade/${activeMarket.symbol}`}
-                className="font-medium text-text border-b-2 border-accent pb-0.5"
-              >
-                Trade
-              </Link>
-              <Link href="/wallet" className="text-muted hover:text-text transition-colors">
-                Wallet
-              </Link>
-              <Link href="/orders" className="text-muted hover:text-text transition-colors">
-                Orders
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-5 text-xs">
-            <ThemeSelector />
-            {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <span className="text-muted font-mono hidden sm:inline">{user?.email}</span>
-                <button
-                  type="button"
-                  onClick={signout}
-                  className="px-2.5 py-1 rounded border border-line hover:border-text transition-colors"
-                >
-                  Sign out
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/signin"
-                  className="px-3 py-1.5 rounded-lg border border-line hover:border-text transition-colors text-text"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/signup"
-                  className="px-3 py-1.5 rounded-lg bg-accent text-on-accent font-medium hover:brightness-105 transition-colors"
-                >
-                  Register
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar fluid />
 
       {/* Ticker Header */}
       <TickerHeader

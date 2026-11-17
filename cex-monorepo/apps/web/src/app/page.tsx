@@ -2,17 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Navbar } from '../components/Navbar';
 import { BrandLogo } from '../components/BrandLogo';
-import { ThemeSelector } from '../components/ThemeSelector';
 import { Button } from '../components/ui/Button';
-import { useAuth } from '../stores/useAuth';
 import { api, type TickerDto } from '../lib/api';
 import { formatPrice } from '../lib/format';
 import { type MarketConfig, MarketStatus } from '@cex/types';
 import { ArrowUpRight, Search } from 'lucide-react';
 
 export default function MarketsLandingPage() {
-  const { user, isAuthenticated, signout } = useAuth();
   const [markets, setMarkets] = useState<MarketConfig[]>([]);
   const [tickers, setTickers] = useState<Record<string, TickerDto>>({});
   const [query, setQuery] = useState('');
@@ -75,55 +73,7 @@ export default function MarketsLandingPage() {
 
   return (
     <div className="min-h-screen bg-bg text-text flex flex-col font-sans">
-      {/* Top Navigation */}
-      <header className="border-b border-line bg-bg sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 min-h-[64px] flex items-center justify-between gap-6">
-          <div className="flex items-center gap-10">
-            <BrandLogo size="md" />
-            <nav className="hidden md:flex items-center gap-7 text-sm">
-              <Link href="/" className="font-semibold text-text">
-                Markets
-              </Link>
-              <Link href="/trade/SOL_USDT" className="text-muted hover:text-text transition-colors">
-                Trade
-              </Link>
-              <Link href="/wallet" className="text-muted hover:text-text transition-colors">
-                Wallet
-              </Link>
-              <Link href="/orders" className="text-muted hover:text-text transition-colors">
-                Orders
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <ThemeSelector />
-            {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-text2 font-mono hidden sm:inline">
-                  {user?.email}
-                </span>
-                <Button variant="outline" size="sm" onClick={() => signout()}>
-                  Sign out
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/signin">
-                  <Button variant="ghost" size="sm">
-                    Sign in
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button variant="primary" size="sm">
-                    Create account
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Hero Section */}
       <section className="border-b border-line bg-bg py-16 md:py-24">
