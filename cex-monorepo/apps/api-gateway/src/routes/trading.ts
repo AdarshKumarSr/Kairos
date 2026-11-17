@@ -1152,4 +1152,53 @@ export const tradingRoutes: FastifyPluginAsync = async (app) => {
 
     return { status: 'ok', fees };
   });
+
+  // 23. GET /admin/withdrawals/pending: Pending withdrawals queue
+  app.get('/admin/withdrawals/pending', { preHandler: [requireRole(Role.ADMIN)] }, async () => {
+    const pending = await app.prisma.withdrawal.findMany({
+      where: { status: 'PENDING' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return {
+      status: 'ok',
+      withdrawals: pending.map((w) => ({
+        id: w.id,
+        userId: w.userId,
+        userEmail: w.user.email,
+        asset: w.asset,
+        amount: w.amount.toString(),
+        status: w.status,
+        createdAt: w.createdAt.toISOString(),
+      })),
+    };
+  });
+
+  // 24. GET /admin/audit: Recent audit log entries
+  app.get('/admin/audit', { preHandler: [requireRole(Role.ADMIN)] }, async (request) => {
+    const logs = await app.prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return {
+      status: 'ok',
+      audit: logs.map((l) => ({
+        id: l.id,
+        actorId: l.actorId,
+        action: l.action,
+        meta: l.meta,
+        createdAt: l.createdAt.toISOString(),
+      })),
+    };
+  });
 };

@@ -38,7 +38,9 @@ export default function MarketsLandingPage() {
         setMarkets(marketsRes.markets || []);
         const tMap: Record<string, TickerDto> = {};
         if (tickersRes.tickers) {
-          for (const t of tickersRes.tickers) tMap[t.market] = t;
+          for (const t of tickersRes.tickers) {
+            if (t && t.market) tMap[t.market] = t;
+          }
         }
         setTickers(tMap);
       } catch {
@@ -65,9 +67,13 @@ export default function MarketsLandingPage() {
     quoteVolume: '171000000000000',
     tradesCount: 15420,
   };
+  const solPct = typeof solTickerRaw.priceChangePercent === 'number'
+    ? (isNaN(solTickerRaw.priceChangePercent) ? 0 : solTickerRaw.priceChangePercent)
+    : parseFloat(String(solTickerRaw.priceChangePercent || '0')) || 0;
+
   const solTicker = {
     ...solTickerRaw,
-    priceChangePercent: solTickerRaw.priceChangePercent ?? 0,
+    priceChangePercent: solPct,
     tradesCount: solTickerRaw.tradesCount ?? 0,
   };
 
@@ -112,13 +118,13 @@ export default function MarketsLandingPage() {
               </div>
               <span
                 className={`font-mono text-sm px-2.5 py-1 rounded-md font-medium ${
-                  solTicker.priceChangePercent >= 0
+                  (solTicker.priceChangePercent ?? 0) >= 0
                     ? 'text-up bg-up-soft'
                     : 'text-down bg-down-soft'
                 }`}
               >
-                {solTicker.priceChangePercent >= 0 ? '+' : ''}
-                {solTicker.priceChangePercent.toFixed(2)}%
+                {(solTicker.priceChangePercent ?? 0) >= 0 ? '+' : ''}
+                {(solTicker.priceChangePercent ?? 0).toFixed(2)}%
               </span>
             </div>
 
@@ -221,7 +227,13 @@ export default function MarketsLandingPage() {
                     quoteVolume: '0',
                     tradesCount: 0,
                   };
-                  const pct = t.priceChangePercent ?? 0;
+                  const rawPct = t.priceChangePercent ?? (t as unknown as Record<string, unknown>).priceChangePercent24h ?? 0;
+                  const pct =
+                    typeof rawPct === 'number'
+                      ? isNaN(rawPct)
+                        ? 0
+                        : rawPct
+                      : parseFloat(String(rawPct)) || 0;
                   const isUp = pct >= 0;
 
                   return (

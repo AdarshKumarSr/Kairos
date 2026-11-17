@@ -37,25 +37,79 @@ export interface OrderDto {
 
 export interface TradeDto {
   id: string;
+  market?: string;
   price: string;
   quantity: string;
-  takerSide: Side;
+  side?: Side;
+  takerSide?: Side;
+  makerOrderId?: string;
+  takerOrderId?: string;
+  fee?: string;
   createdAt: string;
-  engineSeq: string;
+  engineSeq?: string;
 }
 
 export interface TickerDto {
   market: string;
   high: string;
   low: string;
+  high24h?: string;
+  low24h?: string;
   baseVolume: string;
   quoteVolume: string;
+  volume24h?: string;
+  quoteVolume24h?: string;
   lastPrice: string;
   priceChange: string;
+  priceChange24h?: string;
   priceChangePercent: number;
+  priceChangePercent24h?: string | number;
   tradesCount: number;
-  bestBid?: string;
-  bestAsk?: string;
+  tradeCount24h?: number;
+  bestBid?: string | null;
+  bestAsk?: string | null;
+}
+
+export function normalizeTicker(raw: unknown): TickerDto {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      market: '',
+      lastPrice: '0',
+      high: '0',
+      low: '0',
+      baseVolume: '0',
+      quoteVolume: '0',
+      priceChange: '0',
+      priceChangePercent: 0,
+      tradesCount: 0,
+      bestBid: null,
+      bestAsk: null,
+    };
+  }
+  const r = raw as Record<string, unknown>;
+  const rawPct = r.priceChangePercent ?? r.priceChangePercent24h ?? 0;
+  const pct =
+    typeof rawPct === 'number'
+      ? isNaN(rawPct)
+        ? 0
+        : rawPct
+      : typeof rawPct === 'string'
+      ? parseFloat(rawPct) || 0
+      : 0;
+
+  return {
+    market: String(r.market || ''),
+    lastPrice: String(r.lastPrice || '0'),
+    high: String(r.high ?? r.high24h ?? '0'),
+    low: String(r.low ?? r.low24h ?? '0'),
+    baseVolume: String(r.baseVolume ?? r.volume24h ?? '0'),
+    quoteVolume: String(r.quoteVolume ?? r.quoteVolume24h ?? '0'),
+    priceChange: String(r.priceChange ?? r.priceChange24h ?? '0'),
+    priceChangePercent: pct,
+    tradesCount: Number(r.tradesCount ?? r.tradeCount24h ?? 0) || 0,
+    bestBid: r.bestBid != null ? String(r.bestBid) : null,
+    bestAsk: r.bestAsk != null ? String(r.bestAsk) : null,
+  };
 }
 
 export interface CandleDto {
@@ -92,6 +146,7 @@ export interface DepositDto {
 export interface WithdrawalDto {
   id: string;
   userId: string;
+  userEmail?: string;
   asset: string;
   amount: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
@@ -99,10 +154,19 @@ export interface WithdrawalDto {
   decidedAt?: string;
 }
 
+export interface AuditLogDto {
+  id: string;
+  actorId: string | null;
+  action: string;
+  meta: unknown;
+  createdAt: string;
+}
+
 export interface FeeReportDto {
   market: string;
-  totalFeesQuote: string;
-  tradeCount: number;
+  totalFees?: string;
+  totalFeesQuote?: string;
+  tradeCount?: number;
 }
 
 export class ApiClientError extends Error {
@@ -247,10 +311,22 @@ class ApiClient {
       this.request<{ market: string; trades: TradeDto[] }>(
         `/api/v1/trades?market=${market}&limit=${limit}`
       ),
-    getTicker: (market?: string) =>
-      this.request<{ ticker?: TickerDto; tickers?: TickerDto[] }>(
+    getTicker: async (market?: string) => {
+      const res = await this.request<Record<string, unknown>>(
         market ? `/api/v1/ticker?market=${market}` : '/api/v1/ticker'
-      ),
+      );
+      if (Array.isArray(res.tickers)) {
+        return { tickers: res.tickers.map((t) => normalizeTicker(t)) };
+      }
+      if (res.market) {
+        const norm = normalizeTicker(res);
+        return { ticker: norm, tickers: [norm] };
+      }
+      if (res.ticker) {
+        return { ticker: normalizeTicker(res.ticker) };
+      }
+      return { tickers: [] };
+    },
     getKlines: (market: string, interval = '15m', limit = 500) =>
       this.request<{ market: string; interval: string; candles: CandleDto[] }>(
         `/api/v1/klines?market=${market}&interval=${interval}&limit=${limit}`
@@ -376,6 +452,12 @@ class ApiClient {
       ),
     getFees: () =>
       this.request<{ status: string; fees: FeeReportDto[] }>('/api/v1/admin/fees'),
+    getPendingWithdrawals: () =>
+      this.request<{ status: string; withdrawals: WithdrawalDto[] }>(
+        '/api/v1/admin/withdrawals/pending'
+      ),
+    getAuditLogs: () =>
+      this.request<{ status: string; audit: AuditLogDto[] }>('/api/v1/admin/audit'),
   };
 }
 

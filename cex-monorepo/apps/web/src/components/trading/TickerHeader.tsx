@@ -26,12 +26,18 @@ export function TickerHeader({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const lastPrice = ticker?.lastPrice || '0';
-  const priceChangePercent = ticker?.priceChangePercent ?? 0;
+  const rawPct = ticker?.priceChangePercent ?? (ticker as unknown as Record<string, unknown> | null)?.priceChangePercent24h ?? 0;
+  const priceChangePercent =
+    typeof rawPct === 'number'
+      ? isNaN(rawPct)
+        ? 0
+        : rawPct
+      : parseFloat(String(rawPct)) || 0;
   const isUp = priceChangePercent >= 0;
-  const priceChange = ticker?.priceChange || '0';
-  const high24h = ticker?.high || '0';
-  const low24h = ticker?.low || '0';
-  const baseVol = ticker?.baseVolume || '0';
+  const priceChange = ticker?.priceChange || (ticker as unknown as Record<string, unknown> | null)?.priceChange24h ? String((ticker as unknown as Record<string, unknown>).priceChange24h) : '0';
+  const high24h = ticker?.high || (ticker as unknown as Record<string, unknown> | null)?.high24h ? String((ticker as unknown as Record<string, unknown>).high24h) : '0';
+  const low24h = ticker?.low || (ticker as unknown as Record<string, unknown> | null)?.low24h ? String((ticker as unknown as Record<string, unknown>).low24h) : '0';
+  const baseVol = ticker?.baseVolume || (ticker as unknown as Record<string, unknown> | null)?.volume24h ? String((ticker as unknown as Record<string, unknown>).volume24h) : '0';
 
   return (
     <section className="relative border-b border-line bg-bg select-none">

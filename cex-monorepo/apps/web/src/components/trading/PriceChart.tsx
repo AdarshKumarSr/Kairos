@@ -129,20 +129,40 @@ export function PriceChart({ market }: PriceChartProps) {
     candleSeriesRef.current = candleSeries;
     volumeSeriesRef.current = volumeSeries;
 
+    // Remove any TradingView attribution watermark elements actively
+    const pruneWatermark = () => {
+      if (!containerRef.current) return;
+      const elements = containerRef.current.querySelectorAll(
+        '#tv-attr-logo, a[href*="tradingview.com"], [data-dark]'
+      );
+      elements.forEach((el) => {
+        if (el.id === 'tv-attr-logo' || (el instanceof HTMLAnchorElement && el.href.includes('tradingview.com'))) {
+          el.remove();
+        }
+      });
+    };
+    pruneWatermark();
+
     // Resize observer
     const handleResize = () => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
           width: containerRef.current.clientWidth,
         });
+        pruneWatermark();
       }
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(containerRef.current);
 
+    // Mutation observer to kill TV logo if dynamically attached
+    const mutationObserver = new MutationObserver(() => pruneWatermark());
+    mutationObserver.observe(containerRef.current, { childList: true, subtree: true });
+
     return () => {
       resizeObserver.disconnect();
+      mutationObserver.disconnect();
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
