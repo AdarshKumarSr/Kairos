@@ -142,6 +142,36 @@ This document tracks **what has been built so far** and **what is pending** acro
   - All test suites passing, including the user isolation negative test.
   - 5,000 concurrent connected client load test completed with depth fan-out p99 latency of **3.03 ms** (far exceeding the < 250 ms requirement at > 1.6M messages/sec throughput), recorded in `docs/perf.md`.
 
+### Phase 14: Wallet Operations, Admin Controls & Operational Oversight (`apps/api-gateway/`)
+- **Simulated Wallet Deposit Lifecycle (`POST /api/v1/wallet/deposit`)**:
+  - Validates active asset in database.
+  - Enforces per-request deposit cap and 24-hour rolling limit against `DEV_DEPOSIT_MAX` (`100000000000` = 1,000 USDT in scaled $10^8$ BigInt units). Rejects violations with 422 `DEPOSIT_LIMIT_EXCEEDED` or `DAILY_DEPOSIT_LIMIT_EXCEEDED`.
+  - Persists `Deposit` record in PostgreSQL.
+  - Dispatches `DEPOSIT` command to `EngineRunner` and updates projected database balance.
+- **Withdrawal Two-Phase Lifecycle (`POST /api/v1/wallet/withdraw`)**:
+  - Creates `Withdrawal` in `PENDING` state.
+  - Dispatches `WITHDRAW_REQUEST` command to `EngineRunner`, atomically locking the funds.
+  - Immediate failure mapping: if engine rejects (e.g. `INSUFFICIENT_FUNDS`), marks `Withdrawal` as `REJECTED` and returns 422.
+- **Deposit & Withdrawal History (`GET /api/v1/wallet/history`)**:
+  - Authenticated query returning user's recent deposits and withdrawals with status and timestamps.
+- **Admin Market Operations (`requireRole(Role.ADMIN)`)**:
+  - `POST /api/v1/admin/markets`: Creates market in database, updates in-memory `MarketConfigCache` & Redis, dispatches `MARKET_CONFIG` to engine, logs `CREATE_MARKET` to `AuditLog`.
+  - `PATCH /api/v1/admin/markets/:symbol`: Updates dynamic market parameters (fees, tick size, minNotional), updates cache, dispatches `MARKET_CONFIG`, logs `UPDATE_MARKET` to `AuditLog`.
+  - `POST /api/v1/admin/markets/:symbol/halt`: Halts trading, dispatches `HALT_MARKET`, rejects new orders while continuing to accept cancellations, logs `HALT_MARKET` to `AuditLog`.
+  - `POST /api/v1/admin/markets/:symbol/resume`: Resumes trading, dispatches `RESUME_MARKET`, logs `RESUME_MARKET` to `AuditLog`.
+- **Admin Withdrawal Approvals & Rejections**:
+  - `POST /api/v1/admin/withdrawals/:id/approve`: Validates `PENDING` status, dispatches `WITHDRAW_COMPLETE` to debit locked balance, marks `COMPLETED`, logs `APPROVE_WITHDRAWAL` to `AuditLog`.
+  - `POST /api/v1/admin/withdrawals/:id/reject`: Validates `PENDING` status, dispatches `WITHDRAW_REJECT` to unlock and restore funds to available balance, marks `REJECTED`, logs `REJECT_WITHDRAWAL` to `AuditLog`.
+- **Exchange Fee Analytics (`GET /api/v1/admin/fees`)**:
+  - Aggregates accumulated fee revenues grouped by market from trade records, logs `VIEW_FEES` to `AuditLog`.
+- **Strict Role-Based Access Control (RBAC)**:
+  - Fastify `requireRole(Role.ADMIN)` hook rejects non-admin users with 403 `FORBIDDEN` on all administrative routes.
+- **Audit Logging Guarantee**:
+  - Every administrative action writes an `AuditLog` row recording `actorId`, `action`, target metadata, and before/after state snapshots.
+- **Acceptance Criteria & Verification**:
+  - Mixed deposit, withdrawal request, withdrawal rejection, withdrawal approval, and trading simulation verifying Invariant 2 (Conservation) across all assets ($totalDeposited - totalWithdrawn \equiv circulating$).
+  - Full test suite passing across all 22 Phase 9/14 trading and administrative test cases.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -171,8 +201,8 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **11**| DB Projection Worker | **Done** | `apps/db-worker` consuming stream events into PostgreSQL |
 | **12**| Market Data Service | **Done** | `apps/market-data` depth mirror, 24h ticker, throttled feeds, and k-lines |
 | **13**| WebSocket Fan-out | **Done** | `apps/ws-server` client subscriptions, depth resync, and 5k client load test |
-| **14**| Wallet & Admin Operations | **Next Up** | Simulated ledger deposits/withdrawals, admin controls, audit logs |
-| **15**| Frontend Foundation | **Pending** | Next.js 14 App Router layout, Tailwind CSS, Zustand |
+| **14**| Wallet & Admin Operations | **Done** | Simulated ledger deposits/withdrawals, deposit limits, admin controls, audit logs |
+| **15**| Frontend Foundation | **Next Up** | Next.js 14 App Router layout, design tokens, responsive trading shell |
 | **16**| Trading Terminal | **Pending** | Candlestick charts, interactive depth ladder, order form |
 | **17**| History & Admin UI | **Pending** | Order history, balance modals, admin monitoring views |
 | **18**| Verification & Resilience | **Pending** | Fuzz testing, chaos simulation, load tests with k6 |
@@ -183,13 +213,11 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 14: Wallet, Admin, Operational Controls (`apps/api-gateway/`, `apps/engine/`)**:
-   - `POST /wallet/deposit`: validate asset; daily and per-request deposit cap (`DEV_DEPOSIT_MAX`); create `Deposit` row; send `DEPOSIT` command; return new balance on reply.
-   - `POST /wallet/withdraw`: create `Withdrawal(PENDING)`; send `WITHDRAW_REQUEST` command; return 422 on reject.
-   - Admin endpoints: market create/update (sends `MARKET_CONFIG`), halt/resume (`HALT_MARKET`/`RESUME_MARKET`), approve/reject withdrawals (`WITHDRAW_COMPLETE`/`WITHDRAW_REJECT`), and fee report from fee account balances.
-   - Comprehensive audit logging: every admin action writes to `AuditLog` table with actor, action, and before/after values.
-   - Strict RBAC: non-admin users receive 403 on all admin routes.
-   - Invariant 2 (Conservation) verified across mixed deposit/withdraw/trade workflows.
+1. **Phase 15: Frontend Foundation (`apps/web/`)**:
+   - Inspect wireframes and screen specs in `Designs/Kairos.html` (7 pages ready: Landing/Markets, Sign In, Sign Up, Trade Terminal, Wallet, Orders, Admin Console).
+   - Set up Next.js 14 App Router with Tailwind CSS theme matching dark institutional trading palette.
+   - Install Lucide icons, fonts, lightweight chart adapters, and Zustand state stores.
+   - Responsive multi-pane trading layout shell (Navbar, Market Header, Chart, Order Book, Depth, Order Form, User Positions/Orders).
 
 ---
 

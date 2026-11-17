@@ -99,6 +99,38 @@ export const depositSchema = z.object({
   amount: z.string().regex(/^\d+$/, 'Amount must be a positive integer in scaled 1e8 units'),
 });
 
+export const withdrawSchema = z.object({
+  asset: z.string().min(1, 'Asset is required'),
+  amount: z.string().regex(/^\d+$/, 'Amount must be a positive integer in scaled 1e8 units'),
+});
+
+export const marketSymbolParamSchema = z.object({
+  symbol: z.string().min(1, 'Market symbol is required'),
+});
+
+export const withdrawalIdParamSchema = z.object({
+  id: z.string().min(1, 'Withdrawal ID is required'),
+});
+
+export const createMarketSchema = z.object({
+  symbol: z.string().min(1, 'Symbol is required'),
+  baseAsset: z.string().min(1, 'Base asset is required'),
+  quoteAsset: z.string().min(1, 'Quote asset is required'),
+  tickSize: z.string().regex(/^\d+$/, 'Tick size must be scaled integer'),
+  lotSize: z.string().regex(/^\d+$/, 'Lot size must be scaled integer'),
+  minNotional: z.string().regex(/^\d+$/, 'Min notional must be scaled integer'),
+  makerFeeBps: z.coerce.number().int().min(0).max(1000).default(8),
+  takerFeeBps: z.coerce.number().int().min(0).max(1000).default(10),
+});
+
+export const updateMarketSchema = z.object({
+  tickSize: z.string().regex(/^\d+$/).optional(),
+  lotSize: z.string().regex(/^\d+$/).optional(),
+  minNotional: z.string().regex(/^\d+$/).optional(),
+  makerFeeBps: z.coerce.number().int().min(0).max(1000).optional(),
+  takerFeeBps: z.coerce.number().int().min(0).max(1000).optional(),
+});
+
 export const publicTradesQuerySchema = z.object({
   market: z.string().min(1, 'Market symbol is required'),
   limit: z.coerce.number().int().min(1).max(100).default(50),
