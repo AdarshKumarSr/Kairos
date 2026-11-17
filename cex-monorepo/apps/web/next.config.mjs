@@ -8,7 +8,7 @@ const nextConfig = {
         source: '/api/:path*',
         destination: process.env.API_GATEWAY_URL
           ? `${process.env.API_GATEWAY_URL}/api/:path*`
-          : 'http://localhost:3000/api/:path*',
+          : 'http://localhost:4000/api/:path*',
       },
     ];
   },

@@ -10,6 +10,12 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "dev": "tsx watch apps/api-gateway/src/index.ts",
+    "dev:api": "npm --workspace=@cex/api-gateway run dev",
+    "dev:engine": "npm --workspace=@cex/engine run dev",
+    "dev:ws": "npm --workspace=@cex/ws-server run dev",
+    "dev:market": "npm --workspace=@cex/market-data run dev",
+    "dev:dbw": "npm --workspace=@cex/db-worker run dev",
+    "dev:web": "npm --workspace=@cex/web run dev",
     "lint": "eslint . --ext .ts --max-warnings=0",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",

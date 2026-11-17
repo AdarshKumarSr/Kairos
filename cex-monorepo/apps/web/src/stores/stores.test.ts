@@ -131,12 +131,12 @@ describe('apps/web/src/stores', () => {
     expect(useOrders.getState().openOrders.length).toBe(1);
 
     // Update order to partially filled
-    updateOrder({ ...order1, filledQuantity: '50000000', status: 'PARTIALLY_FILLED' });
+    updateOrder({ ...order1, filledQuantity: '50000000', status: OrderStatus.PARTIALLY_FILLED });
     expect(useOrders.getState().openOrders[0]?.filledQuantity).toBe('50000000');
     expect(useOrders.getState().orderHistory.length).toBe(0);
 
     // Update order to FILLED -> moves to history
-    updateOrder({ ...order1, filledQuantity: '100000000', status: 'FILLED' });
+    updateOrder({ ...order1, filledQuantity: '100000000', status: OrderStatus.FILLED });
     expect(useOrders.getState().openOrders.length).toBe(0);
     expect(useOrders.getState().orderHistory.length).toBe(1);
 
