@@ -66,6 +66,13 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **100,000-Command Invariant Fuzz Verification**: 100,000 randomized operations (deposits, limit/market orders, cancellations) verifying all 3 invariants at *every single step*.
 - **Section 5.3 Worked Example Verification**: Exact-to-the-unit replication of Section 5.3 worked example (Alice & Bob 10 SOL @ 142.50 fill, maker/taker fee splits, price-improvement refund, and fee reserves).
 
+### Phase 8: Messaging Layer & Engine Runner (`apps/engine/src/runner/`, `apps/api-gateway/src/engine/`)
+- **EngineRunner Daemon**: Redis Streams consumer group daemon reading `engine.commands`, executing pure synchronous `Engine.process()`, pipelining replies to `engine.replies`, events to `engine.events`, and acknowledging (`XACK`) with automated stream trimming.
+- **State Idempotency Window**: 24h / 1M-entry in-memory cache returning original `EngineReply` on duplicate `commandId` or `(userId, clientOrderId)` with zero double-fills or balance corruption.
+- **Crash & Pending-Entries Recovery**: Drains unacknowledged `XPENDING` entries upon startup before consuming new messages, ensuring zero message loss across restarts.
+- **Gateway EngineClient & Backpressure**: Gateway client with `send(command)`, queue backpressure monitoring (`XLEN` vs `MAX_QUEUE_LEN` returning 503 `EngineOverloadedError`), and background reply promise resolver with 2s timeout returning `{ status: 'PENDING' }` (202).
+- **High-Throughput Integration Benchmark**: Processes **8,000–9,700 commands/sec** end-to-end on laptop over live Redis (exceeding the 3,000 cmd/sec target) with 0 unacknowledged entries on shutdown.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -89,7 +96,7 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **5** | Order-Book Structure | **Done** | Price-level linked lists, limit order books, FIFO queues, snapshots |
 | **6** | Matching Logic | **Done** | Pure synchronous engine matching, maker execution, STP, 184k ops/s |
 | **7** | Balances & Fees | **Done** | In-memory balance sheet, fee deductions, lock invariants |
-| **8** | Redis Streams Messaging | **Pending** | Redis command/reply/event stream integration & engine runner |
+| **8** | Redis Streams Messaging | **Done** | Redis command/reply/event stream integration, engine runner, idempotency |
 | **9** | Trading API | **Pending** | Order placement, order cancellation, and book queries |
 | **10**| Journal & Recovery | **Pending** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
 | **11**| DB Projection Worker | **Pending** | `apps/db-worker` consuming stream events into PostgreSQL |
@@ -107,10 +114,12 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 8: Messaging Layer (Redis Streams) & Engine Runner (`apps/engine/src/runner/`)**:
-   - Redis command/reply/event stream integration.
-   - Deterministic event loop reading from stream, dispatching through `Engine.process()`, writing events to output stream and replies.
-   - Backpressure and 202 accepted timeouts.
+1. **Phase 9: API Gateway Trading Routes (`apps/api-gateway/src/routes/`)**:
+   - `MarketConfigCache`: load markets from Postgres into Redis (`marketcfg:*`) and memory.
+   - Trade routes: `POST /api/v1/order`, `GET /api/v1/order/:orderId`, `DELETE /api/v1/order/:orderId`, `GET /api/v1/orders/open`.
+   - Public market data queries: `GET /api/v1/depth`, `GET /api/v1/markets`.
+   - Balance query: `GET /api/v1/balances`.
+   - Postman & automated integration testing against live API Gateway and live Engine.
 
 ---
 

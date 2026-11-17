@@ -1,10 +1,12 @@
 import {
   Command,
   CommandType,
+  EngineReply,
   Event,
   EventType,
   MarketConfig,
   MarketStatus,
+  OrderSnapshot,
   OrderStatus,
   OrderType,
   RejectCode,
@@ -36,15 +38,23 @@ export interface MarketState {
   book: Book;
 }
 
+export interface IdempotencyRecord {
+  events: Event[];
+  reply: EngineReply;
+  ts: number;
+  paramsHash?: string;
+}
+
 export interface EngineState {
   markets: Map<string, MarketState>;
-  idempotency: Map<string, Event[]>;
+  idempotency: Map<string, IdempotencyRecord>;
   clientOrderMap: Map<string, string>; // `${userId}:${clientOrderId}` -> commandId
   balanceManager: BalanceManager;
 }
 
 export interface ProcessResult {
   events: Event[];
+  reply: EngineReply;
 }
 
 export {
@@ -52,10 +62,12 @@ export {
   Command,
   CommandType,
   EngineOrder,
+  EngineReply,
   Event,
   EventType,
   MarketConfig,
   MarketStatus,
+  OrderSnapshot,
   OrderStatus,
   OrderType,
   RejectCode,

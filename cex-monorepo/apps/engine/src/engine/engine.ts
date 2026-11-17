@@ -4,12 +4,16 @@ import { matchOrder } from './matcher.js';
 import {
   Command,
   EngineContext,
+  EngineReply,
   EngineState,
   Event,
+  IdempotencyRecord,
   MarketConfig,
   MarketState,
   MarketStatus,
+  OrderSnapshot,
   OrderStatus,
+  OrderType,
   ParsedMarketConfig,
   ProcessResult,
   RejectCode,
@@ -33,7 +37,7 @@ export class Engine {
 
     const state: EngineState = {
       markets: new Map<string, MarketState>(),
-      idempotency: new Map<string, Event[]>(),
+      idempotency: new Map<string, IdempotencyRecord>(),
       clientOrderMap: new Map<string, string>(),
       balanceManager: bm,
     };
@@ -84,9 +88,9 @@ export class Engine {
    */
   static process(state: EngineState, command: Command, ctx: EngineContext): ProcessResult {
     // 1. Idempotency check: commandId
-    const cachedEvents = state.idempotency.get(command.commandId);
-    if (cachedEvents) {
-      return { events: cachedEvents };
+    const cached = state.idempotency.get(command.commandId);
+    if (cached) {
+      return { events: cached.events, reply: cached.reply };
     }
 
     // Idempotency check: (userId, clientOrderId)
@@ -95,9 +99,9 @@ export class Engine {
       const clientKey = `${command.userId}:${String(clientOrderId)}`;
       const prevCmdId = state.clientOrderMap.get(clientKey);
       if (prevCmdId) {
-        const prevEvents = state.idempotency.get(prevCmdId);
-        if (prevEvents) {
-          return { events: prevEvents };
+        const prev = state.idempotency.get(prevCmdId);
+        if (prev) {
+          return { events: prev.events, reply: prev.reply };
         }
       }
     }
@@ -468,13 +472,128 @@ export class Engine {
       Engine.checkInvariants(state);
     }
 
-    // 4. Save to idempotency cache
-    state.idempotency.set(command.commandId, events);
-    if (command.userId && clientOrderId) {
-      state.clientOrderMap.set(`${command.userId}:${String(clientOrderId)}`, command.commandId);
+    // 4. Construct EngineReply
+    let reply: EngineReply;
+    const isRejected = events.length > 0 && events[0]?.type === 'ORDER_REJECTED';
+    if (isRejected) {
+      reply = {
+        commandId: command.commandId,
+        engineSeq: ctx.engineSeq.toString(),
+        status: 'REJECTED',
+        code: events[0]!.data.code as RejectCode,
+      };
+    } else {
+      switch (command.type) {
+        case 'PLACE_ORDER': {
+          let orderSnap: OrderSnapshot | undefined;
+          const orderId = String(command.payload.orderId ?? '');
+          for (let i = events.length - 1; i >= 0; i--) {
+            const ev = events[i]!;
+            if (
+              ev.data?.orderId === orderId &&
+              (ev.type === 'ORDER_PLACED' ||
+                ev.type === 'ORDER_UPDATED' ||
+                ev.type === 'ORDER_CANCELLED' ||
+                ev.type === 'ORDER_ACCEPTED')
+            ) {
+              orderSnap = {
+                orderId,
+                userId: command.userId ?? '',
+                market: String(command.payload.market ?? ''),
+                side: command.payload.side as Side,
+                type: command.payload.type as OrderType,
+                price: command.payload.price !== undefined ? String(command.payload.price) : undefined,
+                quantity: String(command.payload.quantity ?? '0'),
+                quoteQuantity: command.payload.quoteQuantity !== undefined ? String(command.payload.quoteQuantity) : undefined,
+                clientOrderId: command.payload.clientOrderId !== undefined ? String(command.payload.clientOrderId) : undefined,
+                status: (ev.data.status as OrderStatus) ?? OrderStatus.OPEN,
+                filledQuantity: String(ev.data.filledQuantity ?? '0'),
+                avgPrice: ev.data.avgPrice !== undefined ? String(ev.data.avgPrice) : undefined,
+                createdAt: ctx.now,
+                updatedAt: ctx.now,
+              };
+              break;
+            }
+          }
+          reply = {
+            commandId: command.commandId,
+            engineSeq: ctx.engineSeq.toString(),
+            status: 'OK',
+            order: orderSnap,
+          };
+          break;
+        }
+
+        case 'CANCEL_ORDER': {
+          const cancelEv = events.find((e) => e.type === 'ORDER_CANCELLED');
+          reply = {
+            commandId: command.commandId,
+            engineSeq: ctx.engineSeq.toString(),
+            status: 'OK',
+            order: cancelEv
+              ? {
+                  orderId: String(cancelEv.data.orderId),
+                  userId: String(cancelEv.data.userId),
+                  market: String(cancelEv.data.market),
+                  side: cancelEv.data.side as Side,
+                  type: OrderType.LIMIT,
+                  quantity: String(cancelEv.data.quantity),
+                  status: OrderStatus.CANCELLED,
+                  filledQuantity: String(cancelEv.data.filledQuantity ?? '0'),
+                  createdAt: ctx.now,
+                  updatedAt: ctx.now,
+                }
+              : undefined,
+          };
+          break;
+        }
+
+        case 'DEPOSIT':
+        case 'WITHDRAW_REQUEST':
+        case 'WITHDRAW_COMPLETE':
+        case 'WITHDRAW_REJECT': {
+          const balEv = events.find((e) => e.type === 'BALANCE_UPDATED');
+          reply = {
+            commandId: command.commandId,
+            engineSeq: ctx.engineSeq.toString(),
+            status: 'OK',
+            balance: balEv
+              ? {
+                  asset: String(balEv.data.asset),
+                  available: String(balEv.data.available),
+                  locked: String(balEv.data.locked),
+                }
+              : undefined,
+          };
+          break;
+        }
+
+        default: {
+          reply = {
+            commandId: command.commandId,
+            engineSeq: ctx.engineSeq.toString(),
+            status: 'OK',
+          };
+          break;
+        }
+      }
     }
 
-    return { events };
+    // 5. Save to idempotency cache & maintain window (max 1M entries)
+    state.idempotency.set(command.commandId, { events, reply, ts: ctx.now });
+    if (state.idempotency.size > 1_000_000) {
+      const oldestKey = state.idempotency.keys().next().value;
+      if (oldestKey) state.idempotency.delete(oldestKey);
+    }
+    if (command.userId && clientOrderId) {
+      state.clientOrderMap.set(`${command.userId}:${String(clientOrderId)}`, command.commandId);
+      if (state.clientOrderMap.size > 1_000_000) {
+        const oldestClient = state.clientOrderMap.keys().next().value;
+        if (oldestClient) state.clientOrderMap.delete(oldestClient);
+      }
+    }
+
+    return { events, reply };
   }
 
   static checkInvariants(state: EngineState): void {

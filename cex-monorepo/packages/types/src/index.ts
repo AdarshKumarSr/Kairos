@@ -11,3 +11,35 @@ export interface MarketConfig { symbol: string; baseAsset: string; quoteAsset: s
 export interface PlaceOrderRequest { market: string; side: Side; type: OrderType; price?: string; quantity?: string; quoteQuantity?: string; clientOrderId?: string; postOnly?: boolean; ioc?: boolean; }
 export interface OrderResponse { orderId: string; status: OrderStatus; filledQuantity: string; rejectCode?: RejectCode; }
 export interface ApiErrorResponse { code: string; message: string; requestId: string; }
+
+export interface OrderSnapshot {
+  orderId: string;
+  userId: string;
+  market: string;
+  side: Side;
+  type: OrderType;
+  price?: string | undefined;
+  quantity: string;
+  quoteQuantity?: string | undefined;
+  clientOrderId?: string | undefined;
+  status: OrderStatus;
+  filledQuantity: string;
+  avgPrice?: string | undefined;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BalanceSnapshot {
+  asset: string;
+  available: string;
+  locked: string;
+}
+
+export interface EngineReply {
+  commandId: string;
+  engineSeq: string;
+  status: 'OK' | 'REJECTED' | 'PENDING';
+  code?: RejectCode | undefined;
+  order?: OrderSnapshot | undefined;
+  balance?: BalanceSnapshot | undefined;
+}
