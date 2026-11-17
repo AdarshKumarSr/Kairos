@@ -23,9 +23,11 @@ The project documentation is organized under the [`documentation/`](./documentat
 | **Phase 3: Money Math** | `@cex/money`, zero-float $10^8$ BigInt scaled monetary calculations | ✅ Completed |
 | **Phase 4: Authentication** | `apps/api-gateway`, Fastify, argon2id hashing, rotating JWT pairs | ✅ Completed |
 | **Phase 5: Order-Book Structure** | `apps/engine`, $O(1)$ linked lists, sorted price levels, deterministic snapshots | ✅ Completed |
+| **Phase 6: Matching Engine Core** | Pure synchronous engine matching, maker/taker execution, STP, 184k ops/s | ✅ Completed |
+| **Phase 7: Balances & Settlement** | In-memory balance manager, atomic locking, ceiling fees, price-improvement refunds | ✅ Completed |
 | **Logging Infrastructure** | `@cex/logger` (Winston), structured JSON logs, secret redaction, `apilogs.ts`, `errorlogs.ts`, `debuglogs.ts` | ✅ Completed |
-| **Phase 6–7: Matching Engine Core** | Pure synchronous matching logic (maker/taker, STP), in-memory balances & fees | ⏳ Next Up |
-| **Phase 8–10: Messaging & Engine Journal** | Redis Streams runner, WAL append-only journal, and snapshot recovery | ⏳ Pending |
+| **Phase 8: Messaging Layer** | Redis Streams runner (`engine.commands`/`replies`/`events`), gateway client & backpressure | ⏳ Next Up |
+| **Phase 9–10: Trading API & Journal** | Order endpoints, WAL append-only journal (`journal-*.log`), and crash recovery | ⏳ Pending |
 | **Phase 11–13: Data & WebSockets** | DB projection worker, market data ticker, and WebSocket fan-out | ⏳ Pending |
 | **Phase 14–17: UI & Admin Tools** | Next.js 14 trading terminal (`apps/web`), wallet modals, admin controls | ⏳ Pending |
 | **Phase 18–20: Verification & Release** | Chaos testing, load tests (k6), Prometheus/Grafana dashboards, v1.0.0 | ⏳ Pending |
