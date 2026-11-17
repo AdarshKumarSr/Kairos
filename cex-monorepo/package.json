@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "dev": "tsx watch apps/api-gateway/src/index.ts",
+    "dev": "tsx watch --env-file=.env apps/api-gateway/src/index.ts",
     "dev:api": "npm --workspace=@cex/api-gateway run dev",
     "dev:engine": "npm --workspace=@cex/engine run dev",
     "dev:ws": "npm --workspace=@cex/ws-server run dev",
