@@ -136,4 +136,14 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Hide TradingView attribution watermark/logo */
+  #tv-attr-logo,
+  a[id="tv-attr-logo"],
+  a[href*="tradingview.com"] {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
 }

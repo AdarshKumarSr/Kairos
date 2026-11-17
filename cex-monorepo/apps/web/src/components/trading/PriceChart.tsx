@@ -80,6 +80,7 @@ export function PriceChart({ market }: PriceChartProps) {
         background: { type: ColorType.Solid, color: bgColor },
         textColor,
         fontFamily: 'Inter, sans-serif',
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: gridColor },
