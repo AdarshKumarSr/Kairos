@@ -107,6 +107,23 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **Disaster Recovery Rebuild Tool (`dbw:rebuild`)**: Administrative CLI script (`npm run dbw:rebuild`) truncating projection tables (`Order`, `Trade`, `LedgerEntry`, `Balance`) and replaying `engine.events` from `0-0` into PostgreSQL.
 - **Verification & Acceptance**: Double replay test proving Invariant 8 (zero duplicate rows), crash recovery of pending entries, out-of-order delivery protection, poison event quarantine, and 100% balance reconciliation matching engine balances across users and assets.
 
+### Phase 12: Market Data Service (`apps/market-data/`)
+- **`MarketDataService` Consumer Daemon**: Consumer group `md` on Redis stream `engine.events`, maintaining full real-time order books, ticker aggregates, and candlestick charts with automated consumer recovery and unacknowledged pending entry handling.
+- **In-Memory Book Mirror (`BookMirror`)**: Maintains full bid and ask depth ladders directly from `DEPTH_DELTA` events; writes top-50 snapshots with sequence numbers to Redis key `depth:{market}` after each batch.
+- **Throttled Depth Feeds (`DepthThrottler`)**: Coalesces high-frequency price updates into 100 ms batches and publishes delta messages on Redis Pub/Sub `md:depth:{market}` with strictly increasing sequence numbers (`seq`).
+- **Rolling 24h Ticker Statistics (`Rolling24hStats`)**: High-performance 1,440-minute circular buckets with automated 24-hour expiry; tracks high, low, base volume, quote volume, last price, price change, percentage change, trade count, best bid, and best ask. Published to `md:ticker:{market}` and cached in key `ticker:{market}`.
+- **Real-Time Candlestick Tracking (`CandleManager`)**: Real-time OHLCV across `1m`, `5m`, `15m`, `1h`, `1d` intervals; in-progress candles published on `md:kline:{interval}:{market}` and cached in `kline:{interval}:{market}`; automatically emits finalized candles (`x: true`) at boundary transitions.
+- **Private User Event Translation**: Transforms internal `ORDER_*` and `BALANCE_UPDATED` events into clean wire messages published on private Redis Pub/Sub channels `user:{userId}`.
+- **Public REST Handlers in API Gateway**:
+  - `GET /api/v1/depth`: Returns L2 depth snapshot up to limit from Redis.
+  - `GET /api/v1/trades`: Returns recent executed trades from PostgreSQL.
+  - `GET /api/v1/ticker`: Returns rolling 24h statistics for a single market or all markets.
+  - `GET /api/v1/klines`: Queries TimescaleDB continuous aggregate views (`candle_1m`, `candle_5m`, etc.) and appends the active in-progress candle from Redis.
+- **Verification & Acceptance Criteria**:
+  - `/klines` and `/ticker` values match hand calculation across intra-bucket and boundary trades.
+  - Depth snapshot + delta reconstruction equality test passes on 10,000 random events against the pure Engine book.
+  - Monotonic sequence numbering verified under high-frequency throttled flushes.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -134,8 +151,8 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **9** | Trading API | **Done** | Order placement, order cancellation, and book queries |
 | **10**| Journal & Recovery | **Done** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
 | **11**| DB Projection Worker | **Done** | `apps/db-worker` consuming stream events into PostgreSQL |
-| **12**| Market Data Service | **Next Up** | `apps/market-data` ticker, rolling statistics, and k-lines |
-| **13**| WebSocket Fan-out | **Pending** | `apps/ws-server` client subscriptions and depth pushes |
+| **12**| Market Data Service | **Done** | `apps/market-data` depth mirror, 24h ticker, throttled feeds, and k-lines |
+| **13**| WebSocket Fan-out | **Next Up** | `apps/ws-server` client subscriptions and depth pushes |
 | **14**| Wallet & Admin Operations | **Pending** | Simulated ledger deposits/withdrawals, admin controls |
 | **15**| Frontend Foundation | **Pending** | Next.js 14 App Router layout, Tailwind CSS, Zustand |
 | **16**| Trading Terminal | **Pending** | Candlestick charts, interactive depth ladder, order form |
@@ -148,13 +165,14 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 12: Market Data Service (`apps/market-data/`)**:
-   - Consumer group `md` on `engine.events`.
-   - Maintain per market: last price, rolling 24h open/high/low/volume (bucketed by minute for efficient expiry), best bid/ask, trade count.
-   - Maintain in-memory mirror of each book from `DEPTH_DELTA` events; write top-50 snapshot with `seq` to `depth:{market}`.
-   - Throttle depth deltas into 100 ms windows published on `md:depth:{market}`.
-   - Publish trades on `md:trade:{market}`, ticker every 1 s or on trade on `md:ticker:{market}`.
-   - Maintain in-progress candle for each interval in memory and publish on `md:kline:{interval}:{market}`.
+1. **Phase 13: WebSocket Server (`apps/ws-server/`)**:
+   - `ws` server on port 8080 with `perMessageDeflate` disabled by default; connection manager and per-connection state (subscriptions, authenticated user, rate counters).
+   - Message handlers: `SUBSCRIBE`, `UNSUBSCRIBE`, `AUTH`, `PING`; strict validation; unknown messages get an error frame.
+   - Redis subscriber (single shared connection) with pattern subscriptions; fan-out via channel $\to$ set of sockets maps.
+   - Depth subscribe flow per Section 6.2: send snapshot from `depth:{market}`, then deltas; if first delta `seq` does not follow snapshot, resend snapshot.
+   - Private stream: after `AUTH`, subscribe socket to `user:{userId}` only for that id (never trusting a client-provided id).
+   - Backpressure: if `ws.bufferedAmount` exceeds threshold or queue grows, drop connection with code 1013.
+   - Heartbeat, graceful shutdown, metrics (`ws_connections`, `ws_messages_out_total`).
 
 ---
 

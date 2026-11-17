@@ -452,5 +452,103 @@ describe('Phase 9: API Gateway Trading Routes', () => {
       expect(bal.locked).toBe(0n);
       expect(bal.available).toBe(500000000000n);
     }, 30000);
+
+    it('Public Market Data Endpoints: /depth, /ticker, /trades, /klines', async () => {
+      // 1. Seed depth in Redis
+      await redis.set(
+        'depth:SOL_USDT',
+        JSON.stringify({
+          market: 'SOL_USDT',
+          seq: '100',
+          timestamp: Date.now(),
+          bids: [['14000000000', '500000000']],
+          asks: [['14500000000', '200000000']],
+        })
+      );
+
+      const depthRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/depth?market=SOL_USDT&limit=10',
+      });
+      expect(depthRes.statusCode).toBe(200);
+      const depthBody = JSON.parse(depthRes.payload);
+      expect(depthBody.market).toBe('SOL_USDT');
+      expect(depthBody.seq).toBe('100');
+      expect(depthBody.bids).toEqual([['14000000000', '500000000']]);
+      expect(depthBody.asks).toEqual([['14500000000', '200000000']]);
+
+      // 2. Seed ticker in Redis
+      await redis.set(
+        'ticker:SOL_USDT',
+        JSON.stringify({
+          market: 'SOL_USDT',
+          lastPrice: '14250000000',
+          priceChange24h: '250000000',
+          priceChangePercent24h: '1.78',
+          high24h: '14500000000',
+          low24h: '14000000000',
+          volume24h: '1000000000',
+          quoteVolume24h: '142500000000',
+          tradeCount24h: 12,
+          bestBid: '14000000000',
+          bestAsk: '14500000000',
+          timestamp: Date.now(),
+        })
+      );
+
+      const tickerRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/ticker?market=SOL_USDT',
+      });
+      expect(tickerRes.statusCode).toBe(200);
+      const tickerBody = JSON.parse(tickerRes.payload);
+      expect(tickerBody.market).toBe('SOL_USDT');
+      expect(tickerBody.lastPrice).toBe('14250000000');
+      expect(tickerBody.tradeCount24h).toBe(12);
+
+      // 3. Test public trades endpoint
+      const tradesRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/trades?market=SOL_USDT&limit=20',
+      });
+      expect(tradesRes.statusCode).toBe(200);
+      const tradesBody = JSON.parse(tradesRes.payload);
+      expect(tradesBody.market).toBe('SOL_USDT');
+      expect(Array.isArray(tradesBody.trades)).toBe(true);
+
+      // 4. Test klines endpoint (with in-progress candle seeded in Redis)
+      await redis.set(
+        'kline:1m:SOL_USDT',
+        JSON.stringify({
+          t: 1700000000000,
+          T: 1700000060000,
+          s: 'SOL_USDT',
+          i: '1m',
+          o: '14000000000',
+          c: '14250000000',
+          h: '14300000000',
+          l: '13900000000',
+          v: '500000000',
+          q: '71250000000',
+          n: 5,
+          x: false,
+        })
+      );
+
+      const klinesRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/klines?market=SOL_USDT&interval=1m&limit=10',
+      });
+      expect(klinesRes.statusCode).toBe(200);
+      const klinesBody = JSON.parse(klinesRes.payload);
+      expect(klinesBody.market).toBe('SOL_USDT');
+      expect(klinesBody.interval).toBe('1m');
+      expect(Array.isArray(klinesBody.candles)).toBe(true);
+      expect(klinesBody.candles.length).toBeGreaterThan(0);
+      const latestCandle = klinesBody.candles[klinesBody.candles.length - 1];
+      expect(latestCandle[0]).toBe(1700000000000);
+      expect(latestCandle[1]).toBe('14000000000');
+      expect(latestCandle[4]).toBe('14250000000');
+    });
   });
 });

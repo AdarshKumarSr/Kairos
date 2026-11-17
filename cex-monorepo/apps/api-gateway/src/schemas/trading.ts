@@ -98,3 +98,20 @@ export const depositSchema = z.object({
   asset: z.string().min(1, 'Asset is required'),
   amount: z.string().regex(/^\d+$/, 'Amount must be a positive integer in scaled 1e8 units'),
 });
+
+export const publicTradesQuerySchema = z.object({
+  market: z.string().min(1, 'Market symbol is required'),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const tickerQuerySchema = z.object({
+  market: z.string().optional(),
+});
+
+export const klinesQuerySchema = z.object({
+  market: z.string().min(1, 'Market symbol is required'),
+  interval: z.enum(['1m', '5m', '15m', '1h', '1d']).default('15m'),
+  limit: z.coerce.number().int().min(1).max(1000).default(500),
+  from: z.coerce.number().optional(),
+  to: z.coerce.number().optional(),
+});

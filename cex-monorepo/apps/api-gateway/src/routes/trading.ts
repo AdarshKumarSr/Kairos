@@ -6,10 +6,13 @@ import { requireAuth } from '../middleware/auth.js';
 import {
   depositSchema,
   depthQuerySchema,
+  klinesQuerySchema,
   openOrdersQuerySchema,
   orderIdParamSchema,
   paginationQuerySchema,
   placeOrderSchema,
+  publicTradesQuerySchema,
+  tickerQuerySchema,
 } from '../schemas/trading.js';
 
 export function getRejectMessage(code?: RejectCode | string): string {
@@ -484,5 +487,123 @@ export const tradingRoutes: FastifyPluginAsync = async (app) => {
       422,
       getRejectMessage(engineReply.code)
     );
+  });
+
+  // 11. GET /trades: Public recent executed trades
+  app.get('/trades', async (request) => {
+    const query = publicTradesQuerySchema.parse(request.query);
+    const trades = await app.prisma.trade.findMany({
+      where: { market: query.market },
+      orderBy: { createdAt: 'desc' },
+      take: query.limit,
+    });
+    return {
+      market: query.market,
+      trades: trades.map((t) => ({
+        id: t.id,
+        price: t.price.toString(),
+        quantity: t.quantity.toString(),
+        takerSide: t.takerSide,
+        createdAt: t.createdAt.toISOString(),
+        engineSeq: t.engineSeq.toString(),
+      })),
+    };
+  });
+
+  // 12. GET /ticker: Public 24h ticker statistics
+  app.get('/ticker', async (request) => {
+    const query = tickerQuerySchema.parse(request.query);
+    if (query.market) {
+      const raw = await app.redis.get(`ticker:${query.market}`);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+      return {
+        market: query.market,
+        lastPrice: '0',
+        priceChange24h: '0',
+        priceChangePercent24h: '0.00',
+        high24h: '0',
+        low24h: '0',
+        volume24h: '0',
+        quoteVolume24h: '0',
+        tradeCount24h: 0,
+        bestBid: null,
+        bestAsk: null,
+        ts: Date.now(),
+      };
+    }
+    const markets = app.marketConfigCache.getAll();
+    const tickers = await Promise.all(
+      markets.map(async (m) => {
+        const raw = await app.redis.get(`ticker:${m.symbol}`);
+        return raw
+          ? JSON.parse(raw)
+          : {
+              market: m.symbol,
+              lastPrice: '0',
+              priceChange24h: '0',
+              priceChangePercent24h: '0.00',
+              high24h: '0',
+              low24h: '0',
+              volume24h: '0',
+              quoteVolume24h: '0',
+              tradeCount24h: 0,
+              bestBid: null,
+              bestAsk: null,
+              ts: Date.now(),
+            };
+      })
+    );
+    return { tickers };
+  });
+
+  // 13. GET /klines: Public candles
+  app.get('/klines', async (request) => {
+    const query = klinesQuerySchema.parse(request.query);
+    const viewName = `candle_${query.interval}`;
+
+    const rows = await app.prisma.$queryRawUnsafe<
+      { bucket: Date; open: bigint; high: bigint; low: bigint; close: bigint; volume: string }[]
+    >(
+      `SELECT bucket, open, high, low, close, volume FROM "${viewName}" WHERE market = $1 ORDER BY bucket ASC LIMIT $2`,
+      query.market,
+      query.limit
+    ).catch(() => []);
+
+    const candles = rows.map((r) => [
+      new Date(r.bucket).getTime(),
+      r.open.toString(),
+      r.high.toString(),
+      r.low.toString(),
+      r.close.toString(),
+      r.volume.toString(),
+    ]);
+
+    const inProgressRaw = await app.redis.get(`kline:${query.interval}:${query.market}`);
+    if (inProgressRaw) {
+      try {
+        const ip = JSON.parse(inProgressRaw) as {
+          t: number;
+          o: string;
+          h: string;
+          l: string;
+          c: string;
+          v: string;
+        };
+        const lastCandle = candles[candles.length - 1];
+        if (!lastCandle || ip.t > (lastCandle[0] as number)) {
+          candles.push([ip.t, ip.o, ip.h, ip.l, ip.c, ip.v]);
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
+    }
+
+    return {
+      market: query.market,
+      interval: query.interval,
+      candles,
+    };
   });
 };
