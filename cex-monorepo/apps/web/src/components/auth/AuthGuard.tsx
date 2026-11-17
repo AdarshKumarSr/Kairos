@@ -17,8 +17,10 @@ export function AuthGuard({
   const { user, isAuthenticated, isLoading, checkSession } = useAuth();
 
   useEffect(() => {
-    checkSession();
-  }, [checkSession]);
+    if (!isAuthenticated) {
+      checkSession();
+    }
+  }, [isAuthenticated, checkSession]);
 
   useEffect(() => {
     if (!isLoading) {

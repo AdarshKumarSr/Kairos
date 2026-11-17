@@ -645,6 +645,8 @@ describe('Phase 9: API Gateway Trading Routes', () => {
       normalToken = app.jwt.sign({ sub: normalUserId, role: 'USER' });
       adminToken = app.jwt.sign({ sub: adminUserId, role: 'ADMIN' });
       trader2Token = app.jwt.sign({ sub: trader2Id, role: 'USER' });
+
+      await app.prisma.auditLog.deleteMany({}).catch(() => {});
     });
 
     afterAll(async () => {

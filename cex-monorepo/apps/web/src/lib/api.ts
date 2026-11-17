@@ -183,6 +183,12 @@ export class ApiClientError extends Error {
   }
 }
 
+export interface AuthResponse {
+  user: UserDto;
+  accessToken: string;
+  csrfToken?: string;
+}
+
 class ApiClient {
   private accessToken: string | null = null;
   private isRefreshing = false;
@@ -190,8 +196,43 @@ class ApiClient {
   private onUnauthorizedCb: (() => void) | null = null;
   private baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('kairos_token');
+        if (saved) this.accessToken = saved;
+      } catch {
+        // Ignored
+      }
+    }
+  }
+
+  private getCsrfToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]+)/);
+      if (match) return decodeURIComponent(match[1]);
+      return localStorage.getItem('kairos_csrf') || null;
+    } catch {
+      return null;
+    }
+  }
+
   public setAccessToken(token: string | null) {
     this.accessToken = token;
+    if (typeof window !== 'undefined') {
+      try {
+        if (token) {
+          localStorage.setItem('kairos_token', token);
+        } else {
+          localStorage.removeItem('kairos_token');
+          localStorage.removeItem('kairos_user');
+          localStorage.removeItem('kairos_csrf');
+        }
+      } catch {
+        // Ignored
+      }
+    }
   }
 
   public getAccessToken(): string | null {
@@ -214,6 +255,11 @@ class ApiClient {
 
     if (this.accessToken) {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const csrf = this.getCsrfToken();
+    if (csrf && !headers['x-csrf-token']) {
+      headers['x-csrf-token'] = csrf;
     }
 
     const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}${endpoint}`;
@@ -259,9 +305,13 @@ class ApiClient {
     this.isRefreshing = true;
     this.refreshPromise = (async () => {
       try {
+        const csrf = this.getCsrfToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (csrf) headers['x-csrf-token'] = csrf;
+
         const res = await fetch(`${this.baseUrl}/api/v1/auth/refresh`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           credentials: 'include',
         });
         if (!res.ok) {
@@ -269,6 +319,20 @@ class ApiClient {
           return null;
         }
         const data: AuthResponse = await res.json();
+        if (data.csrfToken && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('kairos_csrf', data.csrfToken);
+          } catch {
+            // Ignored
+          }
+        }
+        if (data.user && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('kairos_user', JSON.stringify(data.user));
+          } catch {
+            // Ignored
+          }
+        }
         this.setAccessToken(data.accessToken);
         return data.accessToken;
       } catch {

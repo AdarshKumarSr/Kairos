@@ -13,20 +13,29 @@ interface NavbarProps {
   fluid?: boolean;
 }
 
+interface NavLinkItem {
+  label: string;
+  href: string;
+  activeCheck?: (p: string) => boolean;
+}
+
 export function Navbar({ fluid = false }: NavbarProps) {
   const pathname = usePathname();
   const { isAuthenticated, user, signout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navLinks = [
-    { label: 'Markets', href: '/' },
+  const navLinks: NavLinkItem[] = [
     { label: 'Trade', href: '/trade/SOL_USDT', activeCheck: (p: string) => p.startsWith('/trade') },
-    { label: 'Wallet', href: '/wallet' },
-    { label: 'Orders', href: '/orders' },
   ];
 
-  if (user?.role === 'ADMIN') {
-    navLinks.push({ label: 'Admin', href: '/admin' });
+  if (isAuthenticated) {
+    navLinks.push(
+      { label: 'Wallet', href: '/wallet' },
+      { label: 'Orders', href: '/orders' }
+    );
+    if (user?.role === 'ADMIN') {
+      navLinks.push({ label: 'Admin', href: '/admin' });
+    }
   }
 
   const isLinkActive = (item: (typeof navLinks)[0]) => {
