@@ -23,6 +23,12 @@ describe('apps/web/src/lib/format.ts', () => {
     expect(formatPrice(100_000_000n, 2)).toBe('1.00');
     expect(formatPrice(0n, 2)).toBe('0.00');
     expect(formatPrice(142_555_000n, 4)).toBe('1.4255');
+    // Resilient to null/undefined/"undefined"
+    expect(formatPrice(null, 2)).toBe('0.00');
+    expect(formatPrice(undefined, 2)).toBe('0.00');
+    expect(formatPrice('undefined', 2)).toBe('0.00');
+    expect(formatPrice('null', 2)).toBe('0.00');
+    expect(formatPrice('', 2)).toBe('0.00');
   });
 
   it('formatQty: formats quantities accurately without floats', () => {
@@ -30,6 +36,11 @@ describe('apps/web/src/lib/format.ts', () => {
     expect(formatQty(125_000_000n, 2)).toBe('1.25');
     expect(formatQty(50_000_000n, 4)).toBe('0.5000');
     expect(formatQty(1n, 8)).toBe('0.00000001');
+    // Resilient to null/undefined/"undefined"
+    expect(formatQty(null, 4)).toBe('0.0000');
+    expect(formatQty(undefined, 4)).toBe('0.0000');
+    expect(formatQty('undefined', 4)).toBe('0.0000');
+    expect(formatQty('null', 4)).toBe('0.0000');
   });
 
   it('formatPct: formats positive and negative percentage changes', () => {

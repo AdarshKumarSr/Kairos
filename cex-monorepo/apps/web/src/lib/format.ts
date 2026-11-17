@@ -16,8 +16,16 @@ export function parseInputToScaled(input: string): bigint {
  * Formats a scaled BigInt or string into a display price string (e.g. "142.50").
  * Preserves exact decimals up to specified precision without floating-point math.
  */
-export function formatPrice(priceScaled: bigint | string, precision: number = 2): string {
-  const bi = typeof priceScaled === 'bigint' ? priceScaled : BigInt(priceScaled || '0');
+export function formatPrice(priceScaled: bigint | string | null | undefined, precision: number = 2): string {
+  if (priceScaled === null || priceScaled === undefined || priceScaled === '' || priceScaled === 'undefined' || priceScaled === 'null') {
+    return precision > 0 ? `0.${'0'.repeat(precision)}` : '0';
+  }
+  let bi: bigint;
+  try {
+    bi = typeof priceScaled === 'bigint' ? priceScaled : BigInt(priceScaled);
+  } catch {
+    return precision > 0 ? `0.${'0'.repeat(precision)}` : '0';
+  }
   const negative = bi < 0n;
   const abs = negative ? -bi : bi;
   const whole = abs / SCALE;
@@ -30,8 +38,16 @@ export function formatPrice(priceScaled: bigint | string, precision: number = 2)
 /**
  * Formats a scaled BigInt or string into a display quantity string (e.g. "1.2500").
  */
-export function formatQty(qtyScaled: bigint | string, precision: number = 4): string {
-  const bi = typeof qtyScaled === 'bigint' ? qtyScaled : BigInt(qtyScaled || '0');
+export function formatQty(qtyScaled: bigint | string | null | undefined, precision: number = 4): string {
+  if (qtyScaled === null || qtyScaled === undefined || qtyScaled === '' || qtyScaled === 'undefined' || qtyScaled === 'null') {
+    return precision > 0 ? `0.${'0'.repeat(precision)}` : '0';
+  }
+  let bi: bigint;
+  try {
+    bi = typeof qtyScaled === 'bigint' ? qtyScaled : BigInt(qtyScaled);
+  } catch {
+    return precision > 0 ? `0.${'0'.repeat(precision)}` : '0';
+  }
   const negative = bi < 0n;
   const abs = negative ? -bi : bi;
   const whole = abs / SCALE;
