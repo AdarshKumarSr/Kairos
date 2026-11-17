@@ -1,1 +1,23 @@
-{ "name": "@cex/ws-server", "version": "0.1.0", "private": true, "type": "module", "scripts": { "build": "tsc -p tsconfig.json" } }
+{
+  "name": "@cex/ws-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@cex/config": "*",
+    "@cex/logger": "*",
+    "@cex/types": "*",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3",
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/ws": "^8.18.2"
+  }
+}

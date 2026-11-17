@@ -31,8 +31,9 @@ The project documentation is organized under the [`documentation/`](./documentat
 | **Phase 10: Journal & Recovery** | WAL append-only journal (`journal-*.log`), state snapshots, and crash recovery | ✅ Completed |
 | **Phase 11: DB Worker (Idempotent Projection)** | PostgreSQL mirror worker for engine events, atomic transactions, poison queue, rebuild CLI | ✅ Completed |
 | **Phase 12: Market Data Service** | `apps/market-data`, rolling 24h stats, depth mirror, throttled feeds, and k-lines | ✅ Completed |
-| **Phase 13: WebSockets** | WebSocket fan-out, client subscriptions, live book and trade streams | ⏳ Next Up |
-| **Phase 14–17: UI & Admin Tools** | Next.js 14 trading terminal (`apps/web`), wallet modals, admin controls | ⏳ Pending |
+| **Phase 13: WebSockets** | `apps/ws-server`, client subscriptions, live book and trade streams, depth resync | ✅ Completed |
+| **Phase 14: Wallet & Admin Controls** | Simulated ledger deposits/withdrawals, admin operational controls | ⏳ Next Up |
+| **Phase 15–17: UI & Admin Tools** | Next.js 14 trading terminal (`apps/web`), wallet modals, admin controls | ⏳ Pending |
 | **Phase 18–20: Verification & Release** | Chaos testing, load tests (k6), Prometheus/Grafana dashboards, v1.0.0 | ⏳ Pending |
 
 ---

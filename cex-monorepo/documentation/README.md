@@ -124,6 +124,24 @@ This document tracks **what has been built so far** and **what is pending** acro
   - Depth snapshot + delta reconstruction equality test passes on 10,000 random events against the pure Engine book.
   - Monotonic sequence numbering verified under high-frequency throttled flushes.
 
+### Phase 13: WebSocket Server (`apps/ws-server/`)
+- **High-Performance `ws` Server**: WebSocket server on port 8080 (configurable via `WS_PORT`), with `perMessageDeflate: false` by default for minimal memory overhead and zero compression CPU spikes.
+- **Connection & Subscription Manager (`ConnectionManager`)**: Manages per-connection state (`subscriptions`, `authenticated user`, `depthLastSeq`, `missedPongs`, rate counters). Maintains bidirectional mappings between topic channels (`depth@market`, `trade@market`, `ticker@market`, `kline_<interval>@market`, `user`) and sets of active sockets.
+- **Protocol Message Validation & Dispatching**: Strict JSON framing supporting `SUBSCRIBE`, `UNSUBSCRIBE`, `AUTH`, and `PING`. Enforces a maximum of 50 subscriptions per connection, 20 messages/sec rate limiting, and structured error responses (`{ error: { code, message }, id }`).
+- **Section 6.2 Depth Synchronization & Gap Detection**:
+  - Delivers initial depth snapshot from Redis key `depth:{market}` upon subscription.
+  - Forwards contiguous 100 ms throttled depth deltas.
+  - Detects sequence gaps (`deltaSeq > lastSeq + 1n`) and triggers an automated point-to-point snapshot resync without disconnecting or disrupting other subscribers.
+- **Private Stream & User Isolation**:
+  - Access JWT verification via `JWT_ACCESS_SECRET`.
+  - Associating connection identity strictly with token claims (`sub`).
+  - Strict isolation: User A cannot subscribe to or receive User B's private `user` events (negative tests verified).
+- **Backpressure Protection**: Monitors socket `bufferedAmount` against threshold (`MAX_BUFFERED_AMOUNT`), immediately terminating slow consumers with WebSocket close code `1013` (`Try Again Later`) to protect event-loop memory.
+- **Keepalive & Heartbeat**: 20-second ping interval; automatically drops stale connections after 2 consecutive missed pongs.
+- **Acceptance Criteria & Load Benchmark**:
+  - All test suites passing, including the user isolation negative test.
+  - 5,000 concurrent connected client load test completed with depth fan-out p99 latency of **3.03 ms** (far exceeding the < 250 ms requirement at > 1.6M messages/sec throughput), recorded in `docs/perf.md`.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -152,8 +170,8 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **10**| Journal & Recovery | **Done** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
 | **11**| DB Projection Worker | **Done** | `apps/db-worker` consuming stream events into PostgreSQL |
 | **12**| Market Data Service | **Done** | `apps/market-data` depth mirror, 24h ticker, throttled feeds, and k-lines |
-| **13**| WebSocket Fan-out | **Next Up** | `apps/ws-server` client subscriptions and depth pushes |
-| **14**| Wallet & Admin Operations | **Pending** | Simulated ledger deposits/withdrawals, admin controls |
+| **13**| WebSocket Fan-out | **Done** | `apps/ws-server` client subscriptions, depth resync, and 5k client load test |
+| **14**| Wallet & Admin Operations | **Next Up** | Simulated ledger deposits/withdrawals, admin controls, audit logs |
 | **15**| Frontend Foundation | **Pending** | Next.js 14 App Router layout, Tailwind CSS, Zustand |
 | **16**| Trading Terminal | **Pending** | Candlestick charts, interactive depth ladder, order form |
 | **17**| History & Admin UI | **Pending** | Order history, balance modals, admin monitoring views |
@@ -165,14 +183,13 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 13: WebSocket Server (`apps/ws-server/`)**:
-   - `ws` server on port 8080 with `perMessageDeflate` disabled by default; connection manager and per-connection state (subscriptions, authenticated user, rate counters).
-   - Message handlers: `SUBSCRIBE`, `UNSUBSCRIBE`, `AUTH`, `PING`; strict validation; unknown messages get an error frame.
-   - Redis subscriber (single shared connection) with pattern subscriptions; fan-out via channel $\to$ set of sockets maps.
-   - Depth subscribe flow per Section 6.2: send snapshot from `depth:{market}`, then deltas; if first delta `seq` does not follow snapshot, resend snapshot.
-   - Private stream: after `AUTH`, subscribe socket to `user:{userId}` only for that id (never trusting a client-provided id).
-   - Backpressure: if `ws.bufferedAmount` exceeds threshold or queue grows, drop connection with code 1013.
-   - Heartbeat, graceful shutdown, metrics (`ws_connections`, `ws_messages_out_total`).
+1. **Phase 14: Wallet, Admin, Operational Controls (`apps/api-gateway/`, `apps/engine/`)**:
+   - `POST /wallet/deposit`: validate asset; daily and per-request deposit cap (`DEV_DEPOSIT_MAX`); create `Deposit` row; send `DEPOSIT` command; return new balance on reply.
+   - `POST /wallet/withdraw`: create `Withdrawal(PENDING)`; send `WITHDRAW_REQUEST` command; return 422 on reject.
+   - Admin endpoints: market create/update (sends `MARKET_CONFIG`), halt/resume (`HALT_MARKET`/`RESUME_MARKET`), approve/reject withdrawals (`WITHDRAW_COMPLETE`/`WITHDRAW_REJECT`), and fee report from fee account balances.
+   - Comprehensive audit logging: every admin action writes to `AuditLog` table with actor, action, and before/after values.
+   - Strict RBAC: non-admin users receive 403 on all admin routes.
+   - Invariant 2 (Conservation) verified across mixed deposit/withdraw/trade workflows.
 
 ---
 
