@@ -46,6 +46,15 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **Deterministic Serialization**: `Book.snapshot()` and `Book.restore()` providing byte-identical state replication for crash recovery.
 - **Property-Based Testing & Benchmark**: 1,000-run `fast-check` suite verifying Invariant 11 (quantity conservation), sorting invariants, index consistency, and a 100,000 add + 100,000 cancel benchmark running in < 1,000 ms.
 
+### Phase 6: Matching Engine Core (`apps/engine/src/engine/`)
+- **Pure Synchronous `Engine.process()`**: Invariant-locked deterministic execution containing zero I/O, `Date.now()`, or `Math.random()`.
+- **Validation Engine**: Strict market status, price tick, lot size, minNotional, flag combinations (Section 4.2), and balance approval checks.
+- **Unified Parameterized Matcher**: Single matching loop covering LIMIT, MARKET (quoteQuantity budget for BUY), post-only checks, and Self-Trade Prevention (STP `CANCEL_TAKER`).
+- **Complete Event Emission**: Emits `ORDER_ACCEPTED`, `TRADE`, `ORDER_PLACED`, `ORDER_UPDATED`, `ORDER_CANCELLED`, `ORDER_REJECTED`, and `DEPTH_DELTA` events with strictly increasing sequence numbers.
+- **Market Control Operations**: Handling `CANCEL_ORDER`, `HALT_MARKET`, `RESUME_MARKET`, and dynamic `MARKET_CONFIG` updates.
+- **Table-Driven Verification & Fuzzing**: 15 test suites covering sweeps, time priority FIFO, thin books, IOC cancels, and a 100,000-command seeded fuzz run confirming $best\_bid < best\_ask$ and zero crossed books.
+- **High-Throughput Benchmark**: Achieves **> 184,000 orders/sec** in-process on laptop (exceeding the 100,000 orders/sec threshold).
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -67,7 +76,7 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **4** | Authentication | **Done** | `apps/api-gateway`, JWT rotation, argon2id, rate limiting |
 | **—** | Logging System | **Done** | `@cex/logger`, Winston, `apilogs.ts`, `errorlogs.ts`, `debuglogs.ts` |
 | **5** | Order-Book Structure | **Done** | Price-level linked lists, limit order books, FIFO queues, snapshots |
-| **6** | Matching Logic | **Pending** | Pure synchronous engine matching, maker execution, STP |
+| **6** | Matching Logic | **Done** | Pure synchronous engine matching, maker execution, STP, 184k ops/s |
 | **7** | Balances & Fees | **Pending** | In-memory balance sheet, fee deductions, lock invariants |
 | **8** | Redis Streams Messaging | **Pending** | Redis command/reply/event stream integration & engine runner |
 | **9** | Trading API | **Pending** | Order placement, order cancellation, and book queries |
@@ -87,14 +96,13 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 5: Order-Book Data Structures (`apps/engine`)**:
-   - Implement limit order books using doubly-linked FIFO queues per price level.
-   - Support `BTree` / sorted price levels for fast depth sweeps.
-2. **Phase 6: Matching Logic**:
-   - Synchronous, deterministic matching execution (`process()`).
-   - Partial fills, IOC/post-only order flags, and self-trade prevention (STP).
-3. **Phase 7: Live Balances & Conservation**:
+1. **Phase 7: Live Balances & Conservation (`apps/engine`)**:
    - In-memory balances authority, lock management, and fee collection.
+   - Settle trades with price-improvement refunds for takers.
+   - Assert conservation per asset ($total\_available + total\_locked = constant$) and lock consistency.
+2. **Phase 8: Messaging Layer (Redis Streams)**:
+   - Redis command/reply/event stream integration & engine runner loop.
+   - Backpressure and 202 accepted timeouts.
 
 ---
 
