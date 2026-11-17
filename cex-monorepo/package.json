@@ -14,7 +14,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "engine:verify": "npm --workspace=@cex/engine run engine:verify",
-    "engine:snapshot-now": "npm --workspace=@cex/engine run engine:snapshot-now"
+    "engine:snapshot-now": "npm --workspace=@cex/engine run engine:snapshot-now",
+    "dbw:rebuild": "npm --workspace=@cex/db-worker run dbw:rebuild"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",

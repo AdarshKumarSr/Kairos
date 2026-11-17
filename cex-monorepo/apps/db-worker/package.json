@@ -1,1 +1,26 @@
-{ "name": "@cex/db-worker", "version": "0.1.0", "private": true, "type": "module", "scripts": { "build": "tsc -p tsconfig.json" } }
+{
+  "name": "@cex/db-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "tsx src/index.ts",
+    "dbw:rebuild": "tsx src/cli/rebuild.ts"
+  },
+  "dependencies": {
+    "@cex/config": "0.1.0",
+    "@cex/db": "0.1.0",
+    "@cex/logger": "0.1.0",
+    "@cex/types": "0.1.0",
+    "ioredis": "^5.4.2"
+  }
+}

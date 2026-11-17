@@ -92,6 +92,21 @@ This document tracks **what has been built so far** and **what is pending** acro
 - **50-Moment Crash Simulation Verification**: Seeded 500-command workload subjected to 50 randomized crash points and torn write injections; verifies byte-identical state SHA-256 hash match against reference engine in all 50 runs with zero acknowledged orders lost (Invariant 10).
 - **High-Throughput Replay Benchmark**: Replays journal records at **> 146,000 commands/sec** (far exceeding the 1,000,000 commands in < 60s requirement).
 
+### Phase 11: DB Worker - Idempotent PostgreSQL Projection (`apps/db-worker/`)
+- **`DbWorker` Consumer**: Consumer group `dbw` on Redis stream `engine.events` reading batches up to 500 events (or 50 ms block timeout), draining unacknowledged pending messages on startup before polling new events.
+- **Transactional Atomic Projection (`EventProjector`)**: Projects entire event batches in a single atomic database transaction (`prisma.$transaction`), using raw parameterized SQL tagged templates with `ON CONFLICT` semantics.
+- **Strict Invariant-Preserving Upserts**: Conditional updates where `engineSeq >= Order.engineSeq` and `lastEngineSeq >= Balance.lastEngineSeq` ensure that duplicate replays or out-of-order deliveries never regress newer order statuses or balances.
+- **Full Relational Mirroring**:
+  - `ORDER_*` $\to$ upserts `Order` with current lifecycle status (`NEW`, `OPEN`, `PARTIALLY_FILLED`, `FILLED`, `CANCELLED`, `REJECTED`) and cumulative filled quantities.
+  - `TRADE` $\to$ inserts `Trade` with `ON CONFLICT (engineSeq, createdAt) DO NOTHING` into TimescaleDB-compatible hypertable.
+  - `BALANCE_UPDATED` $\to$ conditionally updates `Balance` (`available`, `locked`, `lastEngineSeq`), inserts `LedgerEntry` with `ON CONFLICT (engineSeq, userId, asset, reason) DO NOTHING`, and links `Deposit` / `Withdrawal` rows via `refId` / `withdrawalId`.
+  - `MARKET_STATUS` $\to$ updates active / halted market statuses.
+- **Strict Acknowledgment**: Emits pipelined `XACK` only after database transaction commits successfully (never acknowledges uncommitted data).
+- **Poison Queue & Dead-Letter Stream**: When an individual event is malformed or causes a transaction error, the worker isolates items, retries up to 3 attempts, moves poison events to `engine.events.dead` with error metadata, logs an alert, acknowledges them from the main stream, and increments `dbw_dead_events_total`.
+- **Metrics Tracking**: Real-time telemetry tracking `dbw_lag_seconds`, `dbw_batch_size`, `dbw_events_total`, `dbw_dead_events_total`, and `dbw_batches_total`.
+- **Disaster Recovery Rebuild Tool (`dbw:rebuild`)**: Administrative CLI script (`npm run dbw:rebuild`) truncating projection tables (`Order`, `Trade`, `LedgerEntry`, `Balance`) and replaying `engine.events` from `0-0` into PostgreSQL.
+- **Verification & Acceptance**: Double replay test proving Invariant 8 (zero duplicate rows), crash recovery of pending entries, out-of-order delivery protection, poison event quarantine, and 100% balance reconciliation matching engine balances across users and assets.
+
 ### Logging Infrastructure (`@cex/logger` & `logs/`)
 - **Winston Transition**: Complete migration from Pino to Winston structured JSON logging.
 - **Data Protection & Redaction**: Automatic recursive redaction of sensitive credentials (`passwords`, `tokens`, `cookies`, `secrets`, `API keys`).
@@ -118,8 +133,8 @@ This document tracks **what has been built so far** and **what is pending** acro
 | **8** | Redis Streams Messaging | **Done** | Redis command/reply/event stream integration, engine runner, idempotency |
 | **9** | Trading API | **Done** | Order placement, order cancellation, and book queries |
 | **10**| Journal & Recovery | **Done** | Append-only WAL (`journal-*.log`), snapshots, crash recovery |
-| **11**| DB Projection Worker | **In Progress** | `apps/db-worker` consuming stream events into PostgreSQL |
-| **12**| Market Data Service | **Pending** | `apps/market-data` ticker, rolling statistics, and k-lines |
+| **11**| DB Projection Worker | **Done** | `apps/db-worker` consuming stream events into PostgreSQL |
+| **12**| Market Data Service | **Next Up** | `apps/market-data` ticker, rolling statistics, and k-lines |
 | **13**| WebSocket Fan-out | **Pending** | `apps/ws-server` client subscriptions and depth pushes |
 | **14**| Wallet & Admin Operations | **Pending** | Simulated ledger deposits/withdrawals, admin controls |
 | **15**| Frontend Foundation | **Pending** | Next.js 14 App Router layout, Tailwind CSS, Zustand |
@@ -133,12 +148,13 @@ This document tracks **what has been built so far** and **what is pending** acro
 
 ## 4. What's Next (Immediate Priorities)
 
-1. **Phase 11: DB Worker (Idempotent Projection) (`apps/db-worker/`)**:
-   - Consumer group `dbw` on `engine.events` with batching (up to 500 events or 50 ms).
-   - Atomic database transactions projecting `ORDER_*`, `TRADE`, `BALANCE_UPDATED`, and `LedgerEntry` into PostgreSQL.
-   - Idempotent upserts conditioned on `lastEngineSeq < event.engineSeq`.
-   - `XACK` on successful commit only; dead-letter queue (`engine.events.dead`) after 3 failed attempts.
-   - Prometheus projection lag metrics (`dbw_lag_seconds`, `dbw_batch_size`, `dbw_events_total`).
+1. **Phase 12: Market Data Service (`apps/market-data/`)**:
+   - Consumer group `md` on `engine.events`.
+   - Maintain per market: last price, rolling 24h open/high/low/volume (bucketed by minute for efficient expiry), best bid/ask, trade count.
+   - Maintain in-memory mirror of each book from `DEPTH_DELTA` events; write top-50 snapshot with `seq` to `depth:{market}`.
+   - Throttle depth deltas into 100 ms windows published on `md:depth:{market}`.
+   - Publish trades on `md:trade:{market}`, ticker every 1 s or on trade on `md:ticker:{market}`.
+   - Maintain in-progress candle for each interval in memory and publish on `md:kline:{interval}:{market}`.
 
 ---
 
